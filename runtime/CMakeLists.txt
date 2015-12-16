@@ -291,13 +291,23 @@ if(LIBOMP_OMPT_SUPPORT AND (NOT LIBOMP_HAVE_OMPT_SUPPORT))
   libomp_error_say("OpenMP Tools Interface requested but not available")
 endif()
 
+# TSAN-support
+set(LIBOMP_TSAN_SUPPORT FALSE CACHE BOOL
+  "TSAN-support?")
+
+set(LIBOMP_TSAN_NAME)
+if(${LIBOMP_TSAN_SUPPORT})
+  add_definitions(-D DYNAMIC_ANNOTATIONS_ENABLED=1)
+  set(LIBOMP_TSAN_NAME _tsan)
+endif()
+
 # Error check hwloc support after config-ix has run
 if(LIBOMP_USE_HWLOC AND (NOT LIBOMP_HAVE_HWLOC))
   libomp_error_say("Hwloc requested but not available")
 endif()
 
 # Setting final library name
-set(LIBOMP_DEFAULT_LIB_NAME libomp)
+set(LIBOMP_DEFAULT_LIB_NAME libomp${LIBOMP_TSAN_NAME})
 if(${PROFILE_LIBRARY})
   set(LIBOMP_DEFAULT_LIB_NAME ${LIBOMP_DEFAULT_LIB_NAME}prof)
 endif()
@@ -334,6 +344,7 @@ if(${LIBOMP_STANDALONE_BUILD})
   endif()
   libomp_say("Use Adaptive locks   -- ${LIBOMP_USE_ADAPTIVE_LOCKS}")
   libomp_say("Use quad precision   -- ${LIBOMP_USE_QUAD_PRECISION}")
+  libomp_say("Use TSAN-support     -- ${LIBOMP_TSAN_SUPPORT}")
   libomp_say("Use Hwloc library    -- ${LIBOMP_USE_HWLOC}")
 endif()
 

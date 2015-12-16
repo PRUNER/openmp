@@ -23,6 +23,7 @@
 #include "ompt-specific.h"
 #endif
 
+#include "dynamic_annotations.h"
 
 /* ------------------------------------------------------------------------ */
 /* ------------------------------------------------------------------------ */
@@ -536,6 +537,7 @@ __kmp_free_task( kmp_int32 gtid, kmp_taskdata_t * taskdata, kmp_info_t * thread 
     KMP_DEBUG_ASSERT( TCR_4(taskdata->td_incomplete_child_tasks) == 0 );
 
     taskdata->td_flags.freed = 1;
+    ANNOTATE_HAPPENS_BEFORE(taskdata);
     // deallocate the taskdata and shared variable blocks associated with this task
     #if USE_FAST_MEMORY
         __kmp_fast_free( thread, taskdata );
@@ -935,6 +937,7 @@ __kmp_task_alloc( ident_t *loc_ref, kmp_int32 gtid, kmp_tasking_flags_t *flags,
     #else /* ! USE_FAST_MEMORY */
     taskdata = (kmp_taskdata_t *) __kmp_thread_malloc( thread, shareds_offset + sizeof_shareds );
     #endif /* USE_FAST_MEMORY */
+    ANNOTATE_HAPPENS_AFTER(taskdata);
 
     task                      = KMP_TASKDATA_TO_TASK(taskdata);
 
@@ -1031,6 +1034,7 @@ __kmp_task_alloc( ident_t *loc_ref, kmp_int32 gtid, kmp_tasking_flags_t *flags,
 
     KA_TRACE(20, ("__kmp_task_alloc(exit): T#%d created task %p parent=%p\n",
                   gtid, taskdata, taskdata->td_parent) );
+    ANNOTATE_HAPPENS_BEFORE(task);
 
 #if OMPT_SUPPORT
     __kmp_task_init_ompt(taskdata, gtid, (void*) task_entry);
@@ -1110,6 +1114,7 @@ __kmp_invoke_task( kmp_int32 gtid, kmp_task_t *task, kmp_taskdata_t * current_ta
     // Proxy tasks are not handled by the runtime
     if ( taskdata->td_flags.proxy != TASK_PROXY )
 #endif
+    ANNOTATE_HAPPENS_AFTER(task);
     __kmp_task_start( gtid, task, current_task );
 
 #if OMPT_SUPPORT
@@ -1197,6 +1202,7 @@ __kmp_invoke_task( kmp_int32 gtid, kmp_task_t *task, kmp_taskdata_t * current_ta
     // Proxy tasks are not handled by the runtime
     if ( taskdata->td_flags.proxy != TASK_PROXY )
 #endif
+      ANNOTATE_HAPPENS_BEFORE(taskdata->td_parent);
        __kmp_task_finish( gtid, task, current_task );
 
     KA_TRACE(30, ("__kmp_invoke_task(exit): T#%d completed task %p, resuming task %p\n",
@@ -1236,6 +1242,7 @@ __kmpc_omp_task_parts( ident_t *loc_ref, kmp_int32 gtid, kmp_task_t * new_task)
                   "loc=%p task=%p, return: TASK_CURRENT_NOT_QUEUED\n", gtid, loc_ref,
                   new_taskdata ) );
 
+    ANNOTATE_HAPPENS_BEFORE(new_task);
     return TASK_CURRENT_NOT_QUEUED;
 }
 
@@ -1280,6 +1287,7 @@ __kmp_omp_task( kmp_int32 gtid, kmp_task_t * new_task, bool serialize_immediate 
     }
 #endif
 
+    ANNOTATE_HAPPENS_BEFORE(new_task);
     return TASK_CURRENT_NOT_QUEUED;
 }
 
@@ -1392,6 +1400,7 @@ __kmpc_omp_taskwait( ident_t *loc_ref, kmp_int32 gtid )
     KA_TRACE(10, ("__kmpc_omp_taskwait(exit): T#%d task %p finished waiting, "
                   "returning TASK_CURRENT_NOT_QUEUED\n", gtid, taskdata) );
 
+    ANNOTATE_HAPPENS_AFTER(taskdata);
     return TASK_CURRENT_NOT_QUEUED;
 }
 
@@ -1521,6 +1530,7 @@ __kmpc_end_taskgroup( ident_t* loc, int gtid )
     __kmp_thread_free( thread, taskgroup );
 
     KA_TRACE(10, ("__kmpc_end_taskgroup(exit): T#%d task %p finished waiting\n", gtid, taskdata) );
+    ANNOTATE_HAPPENS_AFTER(taskdata);
 }
 #endif
 
@@ -2298,8 +2308,10 @@ __kmp_realloc_task_threads_data( kmp_info_t *thread, kmp_task_team_t *task_team 
                 // Make the initial allocate for threads_data array, and zero entries
                 // Cannot use __kmp_thread_calloc() because threads not around for
                 // kmp_reap_task_team( ).
+                ANNOTATE_IGNORE_WRITES_BEGIN();
                 *threads_data_p = (kmp_thread_data_t *)
                                   __kmp_allocate( nthreads * sizeof(kmp_thread_data_t) );
+                ANNOTATE_IGNORE_WRITES_END();
 #ifdef BUILD_TIED_TASK_STACK
                 // GEH: Figure out if this is the right thing to do
                 for (i = 0; i < nthreads; i++) {
