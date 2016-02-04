@@ -1,3 +1,18 @@
+/*
+ * tsan_annotations.c -- ThreadSanitizer annotations to support data
+ * race detection in OpenMP programs.
+ */
+
+
+//===----------------------------------------------------------------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is dual licensed under the MIT and the University of Illinois Open
+// Source Licenses. See LICENSE.txt for details.
+//
+//===----------------------------------------------------------------------===//
+
 #include "tsan_annotations.h"
 
 void __attribute__((weak)) AnnotateHappensBefore(const char *f, int l, uptr addr) {}
