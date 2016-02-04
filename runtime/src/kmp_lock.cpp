@@ -21,7 +21,7 @@
 #include "kmp_lock.h"
 #include "kmp_io.h"
 
-#include "dynamic_annotations.h"
+#include "tsan_annotations.h"
 
 #if KMP_OS_LINUX && (KMP_ARCH_X86 || KMP_ARCH_X86_64 || KMP_ARCH_ARM || KMP_ARCH_AARCH64)
 # include <unistd.h>

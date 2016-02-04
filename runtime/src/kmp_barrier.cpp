@@ -25,7 +25,7 @@
 #define USE_NGO_STORES 1
 #endif // KMP_MIC
 
-#include "dynamic_annotations.h"
+#include "tsan_annotations.h"
 
 #if KMP_MIC && USE_NGO_STORES
 // ICV copying
