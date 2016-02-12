@@ -1003,6 +1003,7 @@ __kmp_task_alloc( ident_t *loc_ref, kmp_int32 gtid, kmp_tasking_flags_t *flags,
 #endif // OMP_40_ENABLED
 #if OMP_41_ENABLED
     taskdata->td_flags.proxy           = flags->proxy;
+    taskdata->td_task_team         = thread->th.th_task_team;
 #endif
     taskdata->td_flags.tasktype    = TASK_EXPLICIT;
 
@@ -1366,6 +1367,7 @@ __kmpc_omp_taskwait( ident_t *loc_ref, kmp_int32 gtid )
             my_task_id = taskdata->ompt_task_info.task_id;
             my_parallel_id = team->t.ompt_team_info.parallel_id;
             
+            taskdata->ompt_task_info.frame.reenter_runtime_frame = __builtin_frame_address(0);
             if (ompt_callbacks.ompt_callback(ompt_event_taskwait_begin)) {
                 ompt_callbacks.ompt_callback(ompt_event_taskwait_begin)(
                                 my_parallel_id, my_task_id);
@@ -1408,10 +1410,12 @@ __kmpc_omp_taskwait( ident_t *loc_ref, kmp_int32 gtid )
         taskdata->td_taskwait_thread = - taskdata->td_taskwait_thread;
 
 #if OMPT_SUPPORT && OMPT_TRACE
-        if (ompt_enabled &&
-            ompt_callbacks.ompt_callback(ompt_event_taskwait_end)) {
-            ompt_callbacks.ompt_callback(ompt_event_taskwait_end)(
+        if (ompt_enabled) {
+            if (ompt_callbacks.ompt_callback(ompt_event_taskwait_end)) {
+                ompt_callbacks.ompt_callback(ompt_event_taskwait_end)(
                                 my_parallel_id, my_task_id);
+            }
+            taskdata->ompt_task_info.frame.reenter_runtime_frame = 0;
         }
 #endif
     }
@@ -2717,22 +2721,23 @@ __kmp_tasking_barrier( kmp_team_t *team, kmp_info_t *thread, int gtid )
 #if OMP_41_ENABLED
 
 /* __kmp_give_task puts a task into a given thread queue if:
-    - the queue for that thread it was created
+    - the queue for that thread was created
     - there's space in that queue
 
     Because of this, __kmp_push_task needs to check if there's space after getting the lock
  */
 static bool __kmp_give_task ( kmp_info_t *thread, kmp_int32 tid, kmp_task_t * task )
 {
-    kmp_task_team_t *   task_team = thread->th.th_task_team;
-    kmp_thread_data_t * thread_data = & task_team -> tt.tt_threads_data[ tid ];
     kmp_taskdata_t *    taskdata = KMP_TASK_TO_TASKDATA(task);
-    bool result = false;
+    kmp_task_team_t *	task_team = taskdata->td_task_team;
 
     KA_TRACE(20, ("__kmp_give_task: trying to give task %p to thread %d.\n", taskdata, tid ) );
 
-    // assert tasking is enabled? what if not?
+    // If task_team is NULL something went really bad...
     KMP_DEBUG_ASSERT( task_team != NULL );
+
+    bool result = false;
+    kmp_thread_data_t * thread_data = & task_team -> tt.tt_threads_data[ tid ];
 
     if (thread_data -> td.td_deque == NULL ) {
         // There's no queue in this thread, go find another one
@@ -2867,7 +2872,7 @@ void __kmpc_proxy_task_completed_ooo ( kmp_task_t *ptask )
 
     __kmp_first_top_half_finish_proxy(taskdata);
 
-    // Enqueue task to complete bottom half completation from a thread within the corresponding team
+    // Enqueue task to complete bottom half completion from a thread within the corresponding team
     kmp_team_t * team = taskdata->td_team;
     kmp_int32 nthreads = team->t.t_nproc;
     kmp_info_t *thread;
