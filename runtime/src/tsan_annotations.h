@@ -26,61 +26,63 @@ extern "C" {
 #endif
 
 /* Declaration of all annotation functions in tsan/rtl/tsan_interface_ann.cc */
-void AnnotateHappensBefore(const char *f, int l, uptr addr) ;
-void AnnotateHappensAfter(const char *f, int l, uptr addr) ;
-void AnnotateCondVarSignal(const char *f, int l, uptr cv) ;
-void AnnotateCondVarSignalAll(const char *f, int l, uptr cv) ;
-void AnnotateMutexIsNotPHB(const char *f, int l, uptr mu) ;
-void AnnotateCondVarWait(const char *f, int l, uptr cv, uptr lock) ;
-void AnnotateRWLockCreate(const char *f, int l, uptr m) ;
-void AnnotateRWLockCreateStatic(const char *f, int l, uptr m) ;
-void AnnotateRWLockDestroy(const char *f, int l, uptr m) ;
-void AnnotateRWLockAcquired(const char *f, int l, uptr m, uptr is_w) ;
-void AnnotateRWLockReleased(const char *f, int l, uptr m, uptr is_w) ;
-void AnnotateTraceMemory(const char *f, int l, uptr mem) ;
-void AnnotateFlushState(const char *f, int l) ;
-void AnnotateNewMemory(const char *f, int l, uptr mem, uptr size) ;
-void AnnotateNoOp(const char *f, int l, uptr mem) ;
-void AnnotateFlushExpectedRaces(const char *f, int l) ;
-void AnnotateEnableRaceDetection( const char *f, int l, int enable) ;
-void AnnotateMutexIsUsedAsCondVar( const char *f, int l, uptr mu) ;
-void AnnotatePCQGet( const char *f, int l, uptr pcq) ;
-void AnnotatePCQPut( const char *f, int l, uptr pcq) ;
-void AnnotatePCQDestroy( const char *f, int l, uptr pcq) ;
-void AnnotatePCQCreate( const char *f, int l, uptr pcq) ;
-void AnnotateExpectRace( const char *f, int l, uptr mem, char *desc) ;
-void AnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr size, char *desc) ;
-void AnnotateBenignRace( const char *f, int l, uptr mem, char *desc) ;
-void AnnotateIgnoreReadsBegin(const char *f, int l) ;
-void AnnotateIgnoreReadsEnd(const char *f, int l) ;
-void AnnotateIgnoreWritesBegin(const char *f, int l) ;
-void AnnotateIgnoreWritesEnd(const char *f, int l) ;
-void AnnotateIgnoreSyncBegin(const char *f, int l) ;
-void AnnotateIgnoreSyncEnd(const char *f, int l) ;
-void AnnotatePublishMemoryRange( const char *f, int l, uptr addr, uptr size) ;
-void AnnotateUnpublishMemoryRange( const char *f, int l, uptr addr, uptr size) ;
-void AnnotateThreadName( const char *f, int l, char *name) ;
-void WTFAnnotateHappensBefore(const char *f, int l, uptr addr) ;
-void WTFAnnotateHappensAfter(const char *f, int l, uptr addr) ;
-void WTFAnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr sz, char *desc) ;
-int RunningOnValgrind() ;
-double ValgrindSlowdown(void) ;
-const char * ThreadSanitizerQuery(const char *query) ;
-void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz) ;
+void AnnotateHappensBefore(const char *f, int l, uptr addr)  __attribute__((weak));
+void AnnotateHappensAfter(const char *f, int l, uptr addr)  __attribute__((weak));
+void AnnotateCondVarSignal(const char *f, int l, uptr cv) __attribute__((weak));
+void AnnotateCondVarSignalAll(const char *f, int l, uptr cv) __attribute__((weak));
+void AnnotateMutexIsNotPHB(const char *f, int l, uptr mu) __attribute__((weak));
+void AnnotateCondVarWait(const char *f, int l, uptr cv, uptr lock) __attribute__((weak));
+void AnnotateRWLockCreate(const char *f, int l, uptr m) __attribute__((weak));
+void AnnotateRWLockCreateStatic(const char *f, int l, uptr m) __attribute__((weak));
+void AnnotateRWLockDestroy(const char *f, int l, uptr m) __attribute__((weak));
+void AnnotateRWLockAcquired(const char *f, int l, uptr m, uptr is_w) __attribute__((weak));
+void AnnotateRWLockReleased(const char *f, int l, uptr m, uptr is_w) __attribute__((weak));
+void AnnotateTraceMemory(const char *f, int l, uptr mem) __attribute__((weak));
+void AnnotateFlushState(const char *f, int l) __attribute__((weak));
+void AnnotateNewMemory(const char *f, int l, uptr mem, uptr size) __attribute__((weak));
+void AnnotateNoOp(const char *f, int l, uptr mem) __attribute__((weak));
+void AnnotateFlushExpectedRaces(const char *f, int l) __attribute__((weak));
+void AnnotateEnableRaceDetection( const char *f, int l, int enable) __attribute__((weak));
+void AnnotateMutexIsUsedAsCondVar( const char *f, int l, uptr mu) __attribute__((weak));
+void AnnotatePCQGet( const char *f, int l, uptr pcq) __attribute__((weak));
+void AnnotatePCQPut( const char *f, int l, uptr pcq) __attribute__((weak));
+void AnnotatePCQDestroy( const char *f, int l, uptr pcq) __attribute__((weak));
+void AnnotatePCQCreate( const char *f, int l, uptr pcq) __attribute__((weak));
+void AnnotateExpectRace( const char *f, int l, uptr mem, char *desc) __attribute__((weak));
+void AnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr size, char *desc) __attribute__((weak));
+void AnnotateBenignRace( const char *f, int l, uptr mem, char *desc) __attribute__((weak));
+void AnnotateIgnoreReadsBegin(const char *f, int l) __attribute__((weak));
+void AnnotateIgnoreReadsEnd(const char *f, int l) __attribute__((weak));
+void AnnotateIgnoreWritesBegin(const char *f, int l) __attribute__((weak));
+void AnnotateIgnoreWritesEnd(const char *f, int l) __attribute__((weak));
+void AnnotateIgnoreSyncBegin(const char *f, int l) __attribute__((weak));
+void AnnotateIgnoreSyncEnd(const char *f, int l) __attribute__((weak));
+void AnnotatePublishMemoryRange( const char *f, int l, uptr addr, uptr size) __attribute__((weak));
+void AnnotateUnpublishMemoryRange( const char *f, int l, uptr addr, uptr size) __attribute__((weak));
+void AnnotateThreadName( const char *f, int l, char *name) __attribute__((weak));
+void WTFAnnotateHappensBefore(const char *f, int l, uptr addr) __attribute__((weak));
+void WTFAnnotateHappensAfter(const char *f, int l, uptr addr) __attribute__((weak));
+void WTFAnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr sz, char *desc) __attribute__((weak));
+int RunningOnValgrind() __attribute__((weak));
+double ValgrindSlowdown(void) __attribute__((weak));
+const char * ThreadSanitizerQuery(const char *query) __attribute__((weak));
+void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz) __attribute__((weak));
 
 #ifdef __cplusplus
 }
 #endif
 
 #ifdef TSAN_SUPPORT
-#define ANNOTATE_HAPPENS_AFTER(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
-#define ANNOTATE_HAPPENS_BEFORE(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
+#define ANNOTATE_HAPPENS_AFTER(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
+#define ANNOTATE_HAPPENS_BEFORE(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
 #define ANNOTATE_IGNORE_WRITES_BEGIN() AnnotateIgnoreWritesBegin(__FILE__, __LINE__)
 #define ANNOTATE_IGNORE_WRITES_END() AnnotateIgnoreWritesEnd(__FILE__, __LINE__)
-#define ANNOTATE_RWLOCK_CREATE(lck) AnnotateRWLockCreate(__FILE__, __LINE__, (uptr)lck)
-#define ANNOTATE_RWLOCK_RELEASED(lck) AnnotateRWLockAcquired(__FILE__, __LINE__, (uptr)lck, 1)
-#define ANNOTATE_RWLOCK_ACQUIRED(lck) AnnotateRWLockReleased(__FILE__, __LINE__, (uptr)lck, 1)
-
+//#define ANNOTATE_RWLOCK_CREATE(lck) AnnotateRWLockCreate(__FILE__, __LINE__, (uptr)lck)
+//#define ANNOTATE_RWLOCK_RELEASED(lck) AnnotateRWLockAcquired(__FILE__, __LINE__, (uptr)lck, 1)
+//#define ANNOTATE_RWLOCK_ACQUIRED(lck) AnnotateRWLockReleased(__FILE__, __LINE__, (uptr)lck, 1)
+#define ANNOTATE_RWLOCK_CREATE(lck)
+#define ANNOTATE_RWLOCK_RELEASED(lck) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)lck)
+#define ANNOTATE_RWLOCK_ACQUIRED(lck) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)lck)
 #else /* DYNAMIC_ANNOTATIONS_ENABLED == 0 */
 #define ANNOTATE_HAPPENS_AFTER(addr)
 #define ANNOTATE_HAPPENS_BEFORE(addr)
@@ -92,9 +94,9 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz) ;
 #endif
 
 #define ANNOTATE_QUEUING
-#define ANNOTATE_TICKET
+//#define ANNOTATE_TICKET
 #define ANNOTATE_FUTEX
-#define ANNOTATE_TAS
+//#define ANNOTATE_TAS
 #define ANNOTATE_DRDPA
 
 #ifdef ANNOTATE_QUEUING

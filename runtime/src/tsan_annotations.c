@@ -14,9 +14,10 @@
 //===----------------------------------------------------------------------===//
 
 #include "tsan_annotations.h"
+#include <stdio.h>
 
-void __attribute__((weak)) AnnotateHappensBefore(const char *f, int l, uptr addr) {}
-void __attribute__((weak)) AnnotateHappensAfter(const char *f, int l, uptr addr) {}
+void AnnotateHappensBefore(const char *f, int l, uptr addr) {printf("AnnotateHappensBefore(%s, %i)\n", f, l);}
+void AnnotateHappensAfter(const char *f, int l, uptr addr) {printf("AnnotateHappensAfter(%s, %i)\n", f, l);}
 void __attribute__((weak)) AnnotateCondVarSignal(const char *f, int l, uptr cv) {}
 void __attribute__((weak)) AnnotateCondVarSignalAll(const char *f, int l, uptr cv) {}
 void __attribute__((weak)) AnnotateMutexIsNotPHB(const char *f, int l, uptr mu) {}
