@@ -14,46 +14,50 @@
 //===----------------------------------------------------------------------===//
 
 #include "tsan_annotations.h"
+
 #include <stdio.h>
 
-void AnnotateHappensBefore(const char *f, int l, uptr addr) {printf("AnnotateHappensBefore(%s, %i)\n", f, l);}
-void AnnotateHappensAfter(const char *f, int l, uptr addr) {printf("AnnotateHappensAfter(%s, %i)\n", f, l);}
-void __attribute__((weak)) AnnotateCondVarSignal(const char *f, int l, uptr cv) {}
-void __attribute__((weak)) AnnotateCondVarSignalAll(const char *f, int l, uptr cv) {}
-void __attribute__((weak)) AnnotateMutexIsNotPHB(const char *f, int l, uptr mu) {}
-void __attribute__((weak)) AnnotateCondVarWait(const char *f, int l, uptr cv, uptr lock) {}
-void __attribute__((weak)) AnnotateRWLockCreate(const char *f, int l, uptr m) {}
-void __attribute__((weak)) AnnotateRWLockCreateStatic(const char *f, int l, uptr m) {}
-void __attribute__((weak)) AnnotateRWLockDestroy(const char *f, int l, uptr m) {}
-void __attribute__((weak)) AnnotateRWLockAcquired(const char *f, int l, uptr m, uptr is_w) {}
-void __attribute__((weak)) AnnotateRWLockReleased(const char *f, int l, uptr m, uptr is_w) {}
-void __attribute__((weak)) AnnotateTraceMemory(const char *f, int l, uptr mem) {}
-void __attribute__((weak)) AnnotateFlushState(const char *f, int l) {}
-void __attribute__((weak)) AnnotateNewMemory(const char *f, int l, uptr mem, uptr size) {}
-void __attribute__((weak)) AnnotateNoOp(const char *f, int l, uptr mem) {}
-void __attribute__((weak)) AnnotateFlushExpectedRaces(const char *f, int l) {}
-void __attribute__((weak)) AnnotateEnableRaceDetection( const char *f, int l, int enable) {}
-void __attribute__((weak)) AnnotateMutexIsUsedAsCondVar( const char *f, int l, uptr mu) {}
-void __attribute__((weak)) AnnotatePCQGet( const char *f, int l, uptr pcq) {}
-void __attribute__((weak)) AnnotatePCQPut( const char *f, int l, uptr pcq) {}
-void __attribute__((weak)) AnnotatePCQDestroy( const char *f, int l, uptr pcq) {}
-void __attribute__((weak)) AnnotatePCQCreate( const char *f, int l, uptr pcq) {}
-void __attribute__((weak)) AnnotateExpectRace( const char *f, int l, uptr mem, char *desc) {}
-void __attribute__((weak)) AnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr size, char *desc) {}
-void __attribute__((weak)) AnnotateBenignRace( const char *f, int l, uptr mem, char *desc) {}
-void __attribute__((weak)) AnnotateIgnoreReadsBegin(const char *f, int l) {}
-void __attribute__((weak)) AnnotateIgnoreReadsEnd(const char *f, int l) {}
-void __attribute__((weak)) AnnotateIgnoreWritesBegin(const char *f, int l) {}
-void __attribute__((weak)) AnnotateIgnoreWritesEnd(const char *f, int l) {}
-void __attribute__((weak)) AnnotateIgnoreSyncBegin(const char *f, int l) {}
-void __attribute__((weak)) AnnotateIgnoreSyncEnd(const char *f, int l) {}
-void __attribute__((weak)) AnnotatePublishMemoryRange( const char *f, int l, uptr addr, uptr size) {}
-void __attribute__((weak)) AnnotateUnpublishMemoryRange( const char *f, int l, uptr addr, uptr size) {}
-void __attribute__((weak)) AnnotateThreadName( const char *f, int l, char *name) {}
-void __attribute__((weak)) WTFAnnotateHappensBefore(const char *f, int l, uptr addr) {}
-void __attribute__((weak)) WTFAnnotateHappensAfter(const char *f, int l, uptr addr) {}
-void __attribute__((weak)) WTFAnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr sz, char *desc) {}
-int __attribute__((weak)) RunningOnValgrind() {return 0;}
-double __attribute__((weak)) ValgrindSlowdown(void) {return 0;}
-const char __attribute__((weak))* ThreadSanitizerQuery(const char *query) {return 0;}
-void __attribute__((weak)) AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz) {}
+typedef unsigned long uptr;
+typedef signed   long sptr;
+
+extern "C" __attribute__((weak)) void AnnotateHappensBefore(const char *f, int l, uptr addr) {}
+extern "C" __attribute__((weak)) void AnnotateHappensAfter(const char *f, int l, uptr addr) {}
+extern "C" __attribute__((weak)) void AnnotateCondVarSignal(const char *f, int l, uptr cv) {}
+extern "C" __attribute__((weak)) void AnnotateCondVarSignalAll(const char *f, int l, uptr cv) {}
+extern "C" __attribute__((weak)) void AnnotateMutexIsNotPHB(const char *f, int l, uptr mu) {}
+extern "C" __attribute__((weak)) void AnnotateCondVarWait(const char *f, int l, uptr cv, uptr lock) {}
+extern "C" __attribute__((weak)) void AnnotateRWLockCreate(const char *f, int l, uptr m) {}
+extern "C" __attribute__((weak)) void AnnotateRWLockCreateStatic(const char *f, int l, uptr m) {}
+extern "C" __attribute__((weak)) void AnnotateRWLockDestroy(const char *f, int l, uptr m) {}
+extern "C" __attribute__((weak)) void AnnotateRWLockAcquired(const char *f, int l, uptr m, uptr is_w) {}
+extern "C" __attribute__((weak)) void AnnotateRWLockReleased(const char *f, int l, uptr m, uptr is_w) {}
+extern "C" __attribute__((weak)) void AnnotateTraceMemory(const char *f, int l, uptr mem) {}
+extern "C" __attribute__((weak)) void AnnotateFlushState(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateNewMemory(const char *f, int l, uptr mem, uptr size) {}
+extern "C" __attribute__((weak)) void AnnotateNoOp(const char *f, int l, uptr mem) {}
+extern "C" __attribute__((weak)) void AnnotateFlushExpectedRaces(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateEnableRaceDetection( const char *f, int l, int enable) {}
+extern "C" __attribute__((weak)) void AnnotateMutexIsUsedAsCondVar( const char *f, int l, uptr mu) {}
+extern "C" __attribute__((weak)) void AnnotatePCQGet( const char *f, int l, uptr pcq) {}
+extern "C" __attribute__((weak)) void AnnotatePCQPut( const char *f, int l, uptr pcq) {}
+extern "C" __attribute__((weak)) void AnnotatePCQDestroy( const char *f, int l, uptr pcq) {}
+extern "C" __attribute__((weak)) void AnnotatePCQCreate( const char *f, int l, uptr pcq) {}
+extern "C" __attribute__((weak)) void AnnotateExpectRace( const char *f, int l, uptr mem, char *desc) {}
+extern "C" __attribute__((weak)) void AnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr size, char *desc) {}
+extern "C" __attribute__((weak)) void AnnotateBenignRace( const char *f, int l, uptr mem, char *desc) {}
+extern "C" __attribute__((weak)) void AnnotateIgnoreReadsBegin(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateIgnoreReadsEnd(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateIgnoreWritesBegin(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateIgnoreWritesEnd(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateIgnoreSyncBegin(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotateIgnoreSyncEnd(const char *f, int l) {}
+extern "C" __attribute__((weak)) void AnnotatePublishMemoryRange( const char *f, int l, uptr addr, uptr size) {}
+extern "C" __attribute__((weak)) void AnnotateUnpublishMemoryRange( const char *f, int l, uptr addr, uptr size) {}
+extern "C" __attribute__((weak)) void AnnotateThreadName( const char *f, int l, char *name) {}
+extern "C" __attribute__((weak)) void WTFAnnotateHappensBefore(const char *f, int l, uptr addr) {}
+extern "C" __attribute__((weak)) void WTFAnnotateHappensAfter(const char *f, int l, uptr addr) {}
+extern "C" __attribute__((weak)) void WTFAnnotateBenignRaceSized( const char *f, int l, uptr mem, uptr sz, char *desc) {}
+extern "C" __attribute__((weak)) int RunningOnValgrind() {return 0;}
+extern "C" __attribute__((weak)) double ValgrindSlowdown(void) {return 0;}
+extern "C" __attribute__((weak)) const char __attribute__((weak))* ThreadSanitizerQuery(const char *query) {return 0;}
+extern "C" __attribute__((weak)) void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz) {}
