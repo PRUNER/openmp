@@ -1089,7 +1089,7 @@ __kmp_barrier(enum barrier_type bt, int gtid, int is_split, size_t reduce_size,
     KA_TRACE(15, ("__kmp_barrier: T#%d(%d:%d) has arrived\n",
                   gtid, __kmp_team_from_gtid(gtid)->t.t_id, __kmp_tid_from_gtid(gtid)));
 
-        ANNOTATE_HAPPENS_BEFORE(&team->t.t_bar);
+    ANNOTATE_HAPPENS_BEFORE(&team->t.t_bar);
 #if OMPT_SUPPORT
     if (ompt_enabled) {
 #if OMPT_BLAME
@@ -1325,7 +1325,7 @@ __kmp_barrier(enum barrier_type bt, int gtid, int is_split, size_t reduce_size,
         this_thr->th.ompt_thread_info.state = ompt_state_work_parallel;
     }
 #endif
-        ANNOTATE_HAPPENS_AFTER(&team->t.t_bar);
+    ANNOTATE_HAPPENS_AFTER(&team->t.t_bar);
 
     return status;
 }
