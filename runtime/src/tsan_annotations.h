@@ -98,7 +98,7 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 #define ANNOTATE_REDUCE_AFTER(addr)
 #define ANNOTATE_REDUCE_BEFORE(addr)
 
-#else /* DYNAMIC_ANNOTATIONS_ENABLED == 0 */
+#else
 #define ANNOTATE_HAPPENS_AFTER(addr)
 #define ANNOTATE_HAPPENS_BEFORE(addr)
 #define ANNOTATE_IGNORE_WRITES_BEGIN()

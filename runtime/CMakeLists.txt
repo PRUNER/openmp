@@ -313,8 +313,6 @@ set(LIBOMP_TSAN_SUPPORT FALSE CACHE BOOL
 set(LIBOMP_TSAN_NAME)
 if(${LIBOMP_TSAN_SUPPORT})
   add_definitions(-D TSAN_SUPPORT=1)
-  add_definitions(-D DYNAMIC_ANNOTATIONS_ENABLED=1)
-  set(LIBOMP_TSAN_NAME _tsan)
 endif()
 
 # Error check hwloc support after config-ix has run
@@ -323,7 +321,6 @@ if(LIBOMP_USE_HWLOC AND (NOT LIBOMP_HAVE_HWLOC))
 endif()
 
 # Setting final library name
-set(LIBOMP_DEFAULT_LIB_NAME libomp${LIBOMP_TSAN_NAME})
 if(${PROFILE_LIBRARY})
   set(LIBOMP_DEFAULT_LIB_NAME ${LIBOMP_DEFAULT_LIB_NAME}prof)
 endif()
