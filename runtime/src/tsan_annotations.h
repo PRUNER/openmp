@@ -121,7 +121,7 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 #define ANNOTATE_DRDPA
 
 #ifdef ANNOTATE_QUEUING
-#define ANNOTATE_QUEUING_CREATE(lck) 
+#define ANNOTATE_QUEUING_CREATE(lck)
 #define ANNOTATE_QUEUING_RELEASED(lck) ANNOTATE_HAPPENS_BEFORE(lck)
 #define ANNOTATE_QUEUING_ACQUIRED(lck) ANNOTATE_HAPPENS_AFTER(lck)
 #else
@@ -131,7 +131,7 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 #endif
 
 #ifdef ANNOTATE_TICKET
-#define ANNOTATE_TICKET_CREATE(lck) 
+#define ANNOTATE_TICKET_CREATE(lck)
 #define ANNOTATE_TICKET_RELEASED(lck) ANNOTATE_HAPPENS_BEFORE(lck)
 #define ANNOTATE_TICKET_ACQUIRED(lck) ANNOTATE_HAPPENS_AFTER(lck)
 #else
@@ -141,7 +141,7 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 #endif
 
 #ifdef ANNOTATE_FUTEX
-#define ANNOTATE_FUTEX_CREATE(lck) 
+#define ANNOTATE_FUTEX_CREATE(lck)
 #define ANNOTATE_FUTEX_RELEASED(lck) ANNOTATE_HAPPENS_BEFORE(lck)
 #define ANNOTATE_FUTEX_ACQUIRED(lck) ANNOTATE_HAPPENS_AFTER(lck)
 #else
@@ -151,7 +151,7 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 #endif
 
 #ifdef ANNOTATE_TAS
-#define ANNOTATE_TAS_CREATE(lck) 
+#define ANNOTATE_TAS_CREATE(lck)
 #define ANNOTATE_TAS_RELEASED(lck) ANNOTATE_HAPPENS_BEFORE(lck)
 #define ANNOTATE_TAS_ACQUIRED(lck) ANNOTATE_HAPPENS_AFTER(lck)
 #else
@@ -161,7 +161,7 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 #endif
 
 #ifdef ANNOTATE_DRDPA
-#define ANNOTATE_DRDPA_CREATE(lck) 
+#define ANNOTATE_DRDPA_CREATE(lck)
 #define ANNOTATE_DRDPA_RELEASED(lck) ANNOTATE_HAPPENS_BEFORE(lck)
 #define ANNOTATE_DRDPA_ACQUIRED(lck) ANNOTATE_HAPPENS_AFTER(lck)
 #else
