@@ -321,6 +321,7 @@ if(LIBOMP_USE_HWLOC AND (NOT LIBOMP_HAVE_HWLOC))
 endif()
 
 # Setting final library name
+set(LIBOMP_DEFAULT_LIB_NAME libomp)
 if(${PROFILE_LIBRARY})
   set(LIBOMP_DEFAULT_LIB_NAME ${LIBOMP_DEFAULT_LIB_NAME}prof)
 endif()
