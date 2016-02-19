@@ -84,19 +84,19 @@ void AnnotateMemoryIsInitialized(const char *f, int l, uptr mem, uptr sz);
 /* new higher level barrier annotations */
 #define ANNOTATE_NEW_BARRIER_BEGIN(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
 #define ANNOTATE_NEW_BARRIER_END(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
-//#define ANNOTATE_NEW_BARRIER_BEGIN(addr)
-//#define ANNOTATE_NEW_BARRIER_END(addr)
+// #define ANNOTATE_NEW_BARRIER_BEGIN(addr)
+// #define ANNOTATE_NEW_BARRIER_END(addr)
 
 /* old fine-grain barrier annotations; are replaced by higher level annotation */
-//#define ANNOTATE_BARRIER_AFTER(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
-//#define ANNOTATE_BARRIER_BEFORE(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
-#define ANNOTATE_BARRIER_AFTER(addr)
-#define ANNOTATE_BARRIER_BEFORE(addr)
+#define ANNOTATE_BARRIER_AFTER(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
+#define ANNOTATE_BARRIER_BEFORE(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
+// #define ANNOTATE_BARRIER_AFTER(addr)
+// #define ANNOTATE_BARRIER_BEFORE(addr)
 
-//#define ANNOTATE_REDUCE_AFTER(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
-//#define ANNOTATE_REDUCE_BEFORE(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
-#define ANNOTATE_REDUCE_AFTER(addr)
-#define ANNOTATE_REDUCE_BEFORE(addr)
+#define ANNOTATE_REDUCE_AFTER(addr) AnnotateHappensAfter(__FILE__, __LINE__, (uptr)addr)
+#define ANNOTATE_REDUCE_BEFORE(addr) AnnotateHappensBefore(__FILE__, __LINE__, (uptr)addr)
+// #define ANNOTATE_REDUCE_AFTER(addr)
+// #define ANNOTATE_REDUCE_BEFORE(addr)
 
 #else
 #define ANNOTATE_HAPPENS_AFTER(addr)
