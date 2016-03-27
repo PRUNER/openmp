@@ -654,8 +654,10 @@ __kmpc_flush(ident_t *loc)
             if ( ! __kmp_cpuinfo.sse2 ) {
                 // CPU cannot execute SSE2 instructions.
             } else {
-                #if KMP_COMPILER_ICC || KMP_COMPILER_MSVC
+                #if KMP_COMPILER_ICC 
                 _mm_mfence();
+                #elif KMP_COMPILER_MSVC
+                MemoryBarrier();
                 #else
                 __sync_synchronize();
                 #endif // KMP_COMPILER_ICC
@@ -1172,13 +1174,20 @@ __kmp_map_hint_to_lock(uintptr_t hint)
 #else
 # define KMP_TSX_LOCK(seq) __kmp_user_lock_seq
 #endif
+
+#if KMP_ARCH_X86 || KMP_ARCH_X86_64
+# define KMP_CPUINFO_RTM (__kmp_cpuinfo.rtm)
+#else
+# define KMP_CPUINFO_RTM 0
+#endif
+
     // Hints that do not require further logic
     if (hint & kmp_lock_hint_hle)
         return KMP_TSX_LOCK(hle);
     if (hint & kmp_lock_hint_rtm)
-        return (__kmp_cpuinfo.rtm)? KMP_TSX_LOCK(rtm): __kmp_user_lock_seq;
+        return KMP_CPUINFO_RTM ? KMP_TSX_LOCK(rtm): __kmp_user_lock_seq;
     if (hint & kmp_lock_hint_adaptive)
-        return (__kmp_cpuinfo.rtm)? KMP_TSX_LOCK(adaptive): __kmp_user_lock_seq;
+        return KMP_CPUINFO_RTM ? KMP_TSX_LOCK(adaptive): __kmp_user_lock_seq;
 
     // Rule out conflicting hints first by returning the default lock
     if ((hint & omp_lock_hint_contended) && (hint & omp_lock_hint_uncontended))
@@ -1557,13 +1566,10 @@ __kmpc_for_static_fini( ident_t *loc, kmp_int32 global_tid )
 #if OMPT_SUPPORT && OMPT_TRACE
     if (ompt_enabled &&
         ompt_callbacks.ompt_callback(ompt_event_loop_end)) {
-        kmp_info_t *this_thr = __kmp_threads[ global_tid ];
-        kmp_team_t *team     = this_thr -> th.th_team;
-        int tid = __kmp_tid_from_gtid( global_tid );
-
+        ompt_team_info_t *team_info = __ompt_get_teaminfo(0, NULL);
+        ompt_task_info_t *task_info = __ompt_get_taskinfo(0);
         ompt_callbacks.ompt_callback(ompt_event_loop_end)(
-            team->t.ompt_team_info.parallel_id,
-            team->t.t_implicit_task_taskdata[tid].ompt_task_info.task_id);
+            team_info->parallel_id, task_info->task_id);
     }
 #endif
 
