@@ -1,5 +1,5 @@
 /*
- * include/41/omp.h.var
+ * include/45/omp.h.var
  */
 
 
@@ -140,6 +140,7 @@
     extern void   __KAI_KMPC_CONVENTION  kmp_set_library_turnaround (void);
     extern void   __KAI_KMPC_CONVENTION  kmp_set_library_throughput (void);
     extern void   __KAI_KMPC_CONVENTION  kmp_set_defaults           (char const *);
+    extern void   __KAI_KMPC_CONVENTION  kmp_set_disp_num_buffers   (int);
 
     /* Intel affinity API */
     typedef void * kmp_affinity_mask_t;
@@ -173,6 +174,7 @@
     extern void __KAI_KMPC_CONVENTION omp_get_partition_place_nums (int *);
 
     extern void * __KAI_KMPC_CONVENTION  kmp_malloc  (size_t);
+    extern void * __KAI_KMPC_CONVENTION  kmp_aligned_malloc  (size_t, size_t);
     extern void * __KAI_KMPC_CONVENTION  kmp_calloc  (size_t, size_t);
     extern void * __KAI_KMPC_CONVENTION  kmp_realloc (void *, size_t);
     extern void   __KAI_KMPC_CONVENTION  kmp_free    (void *);
