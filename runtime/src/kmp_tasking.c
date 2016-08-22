@@ -1481,12 +1481,12 @@ __kmpc_omp_taskwait( ident_t *loc_ref, kmp_int32 gtid )
             taskdata->ompt_task_info.frame.reenter_runtime_frame = 0;
         }
 #endif
+        ANNOTATE_HAPPENS_AFTER(taskdata);
     }
 
     KA_TRACE(10, ("__kmpc_omp_taskwait(exit): T#%d task %p finished waiting, "
                   "returning TASK_CURRENT_NOT_QUEUED\n", gtid, taskdata) );
 
-    ANNOTATE_HAPPENS_AFTER(taskdata);
     return TASK_CURRENT_NOT_QUEUED;
 }
 
