@@ -30,7 +30,7 @@ VERSION {
 
 	# icc drops weak attribute at linking step without the following line:
         Annotate*;           # TSAN annotation
-        
+
         #
         # OMPT state placeholders
         #
