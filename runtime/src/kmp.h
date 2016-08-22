@@ -55,6 +55,12 @@
 #define KMP_CANCEL_THREADS
 #define KMP_THREAD_ATTR
 
+// Android does not have pthread_cancel.  Undefine KMP_CANCEL_THREADS if being
+// built on Android
+#if defined(__ANDROID__)
+#undef KMP_CANCEL_THREADS
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stddef.h>
@@ -1553,7 +1559,7 @@ struct shared_table {
 /* ------------------------------------------------------------------------ */
 /* ------------------------------------------------------------------------ */
 
-#ifdef KMP_STATIC_STEAL_ENABLED
+#if KMP_STATIC_STEAL_ENABLED
 typedef struct KMP_ALIGN_CACHE dispatch_private_info32 {
     kmp_int32 count;
     kmp_int32 ub;
@@ -1728,7 +1734,10 @@ typedef struct kmp_disp {
 #if OMP_45_ENABLED
     kmp_int32                th_doacross_buf_idx; // thread's doacross buffer index
     volatile kmp_uint32     *th_doacross_flags;   // pointer to shared array of flags
-    kmp_int64               *th_doacross_info;    // info on loop bounds
+    union { // we can use union here because doacross cannot be used in nonmonotonic loops
+        kmp_int64           *th_doacross_info;    // info on loop bounds
+        kmp_lock_t          *th_steal_lock;       // lock used for chunk stealing (8-byte variable)
+    };
 #else
     void* dummy_padding[2]; // make it 64 bytes on Intel(R) 64
 #endif
