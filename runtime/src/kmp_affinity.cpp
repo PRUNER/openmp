@@ -3611,6 +3611,31 @@ static int     __kmp_aff_depth = 0;
     __kmp_apply_thread_places(NULL, 0);               \
     return;
 
+static int
+__kmp_affinity_cmp_Address_child_num(const void *a, const void *b)
+{
+    const Address *aa = (const Address *)&(((AddrUnsPair *)a)
+      ->first);
+    const Address *bb = (const Address *)&(((AddrUnsPair *)b)
+      ->first);
+    unsigned depth = aa->depth;
+    unsigned i;
+    KMP_DEBUG_ASSERT(depth == bb->depth);
+    KMP_DEBUG_ASSERT((unsigned)__kmp_affinity_compact <= depth);
+    KMP_DEBUG_ASSERT(__kmp_affinity_compact >= 0);
+    for (i = 0; i < (unsigned)__kmp_affinity_compact; i++) {
+        int j = depth - i - 1;
+        if (aa->childNums[j] < bb->childNums[j]) return -1;
+        if (aa->childNums[j] > bb->childNums[j]) return 1;
+    }
+    for (; i < depth; i++) {
+        int j = i - __kmp_affinity_compact;
+        if (aa->childNums[j] < bb->childNums[j]) return -1;
+        if (aa->childNums[j] > bb->childNums[j]) return 1;
+    }
+    return 0;
+}
+
 static void
 __kmp_aux_affinity_initialize(void)
 {
@@ -4141,7 +4166,7 @@ __kmp_aux_affinity_initialize(void)
         KMP_ASSERT2(0, "Unexpected affinity setting");
     }
 
-    __kmp_free(osId2Mask);
+    KMP_CPU_FREE_ARRAY(osId2Mask, maxIndex+1);
     machine_hierarchy.init(address2os, __kmp_avail_proc);
 }
 #undef KMP_EXIT_AFF_NONE
@@ -4509,6 +4534,19 @@ __kmp_aux_get_affinity(void **mask)
 }
 
 int
+__kmp_aux_get_affinity_max_proc() {
+    if (!  KMP_AFFINITY_CAPABLE()) {
+        return 0;
+    }
+#if KMP_GROUP_AFFINITY
+    if ( __kmp_num_proc_groups > 1 ) {
+        return (int)(__kmp_num_proc_groups*sizeof(DWORD_PTR)*CHAR_BIT);
+    }
+#endif
+    return __kmp_xproc;
+}
+
+int
 __kmp_aux_set_affinity_mask_proc(int proc, void **mask)
 {
     int retval;
@@ -4532,11 +4570,7 @@ __kmp_aux_set_affinity_mask_proc(int proc, void **mask)
         }
     }
 
-    if ((proc < 0)
-# if !KMP_USE_HWLOC
-         || ((unsigned)proc >= KMP_CPU_SETSIZE)
-# endif
-       ) {
+    if ((proc < 0) || (proc >= __kmp_aux_get_affinity_max_proc())) {
         return -1;
     }
     if (! KMP_CPU_ISSET(proc, __kmp_affin_fullMask)) {
@@ -4572,11 +4606,7 @@ __kmp_aux_unset_affinity_mask_proc(int proc, void **mask)
         }
     }
 
-    if ((proc < 0)
-# if !KMP_USE_HWLOC
-         || ((unsigned)proc >= KMP_CPU_SETSIZE)
-# endif
-       ) {
+    if ((proc < 0) || (proc >= __kmp_aux_get_affinity_max_proc())) {
         return -1;
     }
     if (! KMP_CPU_ISSET(proc, __kmp_affin_fullMask)) {
@@ -4612,11 +4642,7 @@ __kmp_aux_get_affinity_mask_proc(int proc, void **mask)
         }
     }
 
-    if ((proc < 0)
-# if !KMP_USE_HWLOC
-         || ((unsigned)proc >= KMP_CPU_SETSIZE)
-# endif
-       ) {
+    if ((proc < 0) || (proc >= __kmp_aux_get_affinity_max_proc())) {
         return -1;
     }
     if (! KMP_CPU_ISSET(proc, __kmp_affin_fullMask)) {
