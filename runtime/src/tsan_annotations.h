@@ -17,6 +17,8 @@
 #ifndef TSAN_ANNOTATIONS_H
 #define TSAN_ANNOTATIONS_H
 
+#include "kmp_config.h"
+
 /* types as used in tsan/rtl/tsan_interface_ann.cc */
 typedef unsigned long uptr;
 typedef signed   long sptr;

@@ -318,10 +318,8 @@ endif()
 # TSAN-support
 set(LIBOMP_TSAN_SUPPORT FALSE CACHE BOOL
   "TSAN-support?")
-
-set(LIBOMP_TSAN_NAME)
-if(${LIBOMP_TSAN_SUPPORT})
-  add_definitions(-D TSAN_SUPPORT=1)
+if(LIBOMP_TSAN_SUPPORT AND (NOT LIBOMP_HAVE_TSAN_SUPPORT))
+  libomp_error_say("TSAN functionality requested but not available")
 endif()
 
 # Error check hwloc support after config-ix has run
@@ -390,4 +388,3 @@ endif()
 
 add_subdirectory(src)
 add_subdirectory(test)
-
