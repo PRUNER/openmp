@@ -109,11 +109,11 @@ __kmp_linear_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr, int gtid
             if (reduce) {
                 KA_TRACE(100, ("__kmp_linear_barrier_gather: T#%d(%d:%d) += T#%d(%d:%d)\n", gtid,
                                team->t.t_id, tid, __kmp_gtid_from_tid(i, team), team->t.t_id, i));
-              ANNOTATE_REDUCE_AFTER(reduce);
+                ANNOTATE_REDUCE_AFTER(reduce);
                 (*reduce)(this_thr->th.th_local.reduce_data,
                           other_threads[i]->th.th_local.reduce_data);
-              ANNOTATE_REDUCE_BEFORE(reduce);
-              ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
+                ANNOTATE_REDUCE_BEFORE(reduce);
+                ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
             }
         }
         // Don't have to worry about sleep bit here or atomic since team setting
@@ -279,10 +279,10 @@ __kmp_tree_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr, int gtid, 
                 KA_TRACE(100, ("__kmp_tree_barrier_gather: T#%d(%d:%d) += T#%d(%d:%u)\n",
                                gtid, team->t.t_id, tid, __kmp_gtid_from_tid(child_tid, team),
                                team->t.t_id, child_tid));
-              ANNOTATE_REDUCE_AFTER(reduce);
+                ANNOTATE_REDUCE_AFTER(reduce);
                 (*reduce)(this_thr->th.th_local.reduce_data, child_thr->th.th_local.reduce_data);
-              ANNOTATE_REDUCE_BEFORE(reduce);
-              ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
+                ANNOTATE_REDUCE_BEFORE(reduce);
+                ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
             }
             child++;
             child_tid++;
@@ -506,10 +506,10 @@ __kmp_hyper_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr, int gtid,
                 KA_TRACE(100, ("__kmp_hyper_barrier_gather: T#%d(%d:%d) += T#%d(%d:%u)\n",
                                gtid, team->t.t_id, tid, __kmp_gtid_from_tid(child_tid, team),
                                team->t.t_id, child_tid));
-              ANNOTATE_REDUCE_AFTER(reduce);
+                ANNOTATE_REDUCE_AFTER(reduce);
                 (*reduce)(this_thr->th.th_local.reduce_data, child_thr->th.th_local.reduce_data);
-              ANNOTATE_REDUCE_BEFORE(reduce);
-              ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
+                ANNOTATE_REDUCE_BEFORE(reduce);
+                ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
             }
         }
     }
@@ -813,10 +813,10 @@ __kmp_hierarchical_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr,
                         KA_TRACE(100, ("__kmp_hierarchical_barrier_gather: T#%d(%d:%d) += T#%d(%d:%d)\n",
                                        gtid, team->t.t_id, tid, __kmp_gtid_from_tid(child_tid, team),
                                        team->t.t_id, child_tid));
-                      ANNOTATE_REDUCE_AFTER(reduce);
+                        ANNOTATE_REDUCE_AFTER(reduce);
                         (*reduce)(this_thr->th.th_local.reduce_data, child_thr->th.th_local.reduce_data);
-                      ANNOTATE_REDUCE_BEFORE(reduce);
-                      ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
+                        ANNOTATE_REDUCE_BEFORE(reduce);
+                        ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
                     }
                 }
             }
@@ -839,10 +839,10 @@ __kmp_hierarchical_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr,
                         KA_TRACE(100, ("__kmp_hierarchical_barrier_gather: T#%d(%d:%d) += T#%d(%d:%d)\n",
                                        gtid, team->t.t_id, tid, __kmp_gtid_from_tid(child_tid, team),
                                        team->t.t_id, child_tid));
-                      ANNOTATE_REDUCE_AFTER(reduce);
+                        ANNOTATE_REDUCE_AFTER(reduce);
                         (*reduce)(this_thr->th.th_local.reduce_data, child_thr->th.th_local.reduce_data);
-                      ANNOTATE_REDUCE_BEFORE(reduce);
-                      ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
+                        ANNOTATE_REDUCE_BEFORE(reduce);
+                        ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
                     }
                 }
             }
