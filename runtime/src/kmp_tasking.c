@@ -1211,10 +1211,13 @@ __kmp_invoke_task( kmp_int32 gtid, kmp_task_t *task, kmp_taskdata_t * current_ta
 
 #if OMP_45_ENABLED
     // Proxy tasks are not handled by the runtime
-    if ( taskdata->td_flags.proxy != TASK_PROXY )
+    if ( taskdata->td_flags.proxy != TASK_PROXY ) {
 #endif
-    ANNOTATE_HAPPENS_AFTER(task);
-    __kmp_task_start( gtid, task, current_task );
+      ANNOTATE_HAPPENS_AFTER(task);
+      __kmp_task_start( gtid, task, current_task );
+#if OMP_45_ENABLED
+    }
+#endif
 
 #if OMPT_SUPPORT
     ompt_thread_info_t oldInfo;
@@ -1309,10 +1312,13 @@ __kmp_invoke_task( kmp_int32 gtid, kmp_task_t *task, kmp_taskdata_t * current_ta
 
 #if OMP_45_ENABLED
     // Proxy tasks are not handled by the runtime
-    if ( taskdata->td_flags.proxy != TASK_PROXY )
+    if ( taskdata->td_flags.proxy != TASK_PROXY ) {
 #endif
       ANNOTATE_HAPPENS_BEFORE(taskdata->td_parent);
-       __kmp_task_finish( gtid, task, current_task );
+      __kmp_task_finish( gtid, task, current_task );
+#if OMP_45_ENABLED
+    }
+#endif
 
 #if USE_ITT_BUILD && USE_ITT_NOTIFY
     // Barrier imbalance - correct arrive time after the task finished
