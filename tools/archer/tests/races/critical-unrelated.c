@@ -51,13 +51,12 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #include <stdio.h>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0;
 
-  #pragma omp parallel num_threads(2) shared(var)
+#pragma omp parallel num_threads(2) shared(var)
   {
-    #pragma omp critical
+#pragma omp critical
     {
       // Dummy region.
     }

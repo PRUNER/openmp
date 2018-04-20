@@ -53,32 +53,29 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include "ompt-signal.h"
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0, a = 0;
 
-  #pragma omp parallel num_threads(2) shared(var, a)
-  #pragma omp master
+#pragma omp parallel num_threads(2) shared(var, a)
+#pragma omp master
   {
-    #pragma omp task shared(var, a) depend(out: var)
+#pragma omp task shared(var, a) depend(out : var)
     {
       var++;
       OMPT_SIGNAL(a);
     }
 
-    #pragma omp task shared(var, a) depend(in: var)
-    {
-      OMPT_WAIT(a, 2);
-    }
+#pragma omp task shared(var, a) depend(in : var)
+    { OMPT_WAIT(a, 2); }
 
-    #pragma omp task shared(var, a) depend(in: var)
+#pragma omp task shared(var, a) depend(in : var)
     {
       OMPT_SIGNAL(a);
       var++;
     }
 
     // Give other thread time to steal the task.
-    OMPT_WAIT(a,1);
+    OMPT_WAIT(a, 1);
   }
 
   fprintf(stderr, "DONE\n");
@@ -86,4 +83,6 @@ int main(int argc, char* argv[])
   return error;
 }
 
+// CHECK-NOT: ThreadSanitizer: data race
+// CHECK-NOT: ThreadSanitizer: reported
 // CHECK: DONE

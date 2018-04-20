@@ -51,14 +51,13 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #include <stdio.h>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0;
 
   omp_lock_t lock;
   omp_init_lock(&lock);
 
-  #pragma omp parallel num_threads(2) shared(var)
+#pragma omp parallel num_threads(2) shared(var)
   {
     omp_set_lock(&lock);
     var++;
@@ -72,4 +71,6 @@ int main(int argc, char* argv[])
   return error;
 }
 
+// CHECK-NOT: ThreadSanitizer: data race
+// CHECK-NOT: ThreadSanitizer: reported
 // CHECK: DONE

@@ -53,17 +53,14 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define NUM_THREADS 2
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0;
   int i;
 
-  #pragma omp parallel for ordered num_threads(NUM_THREADS) shared(var)
+#pragma omp parallel for ordered num_threads(NUM_THREADS) shared(var)
   for (i = 0; i < NUM_THREADS; i++) {
-    #pragma omp ordered
-    {
-      var++;
-    }
+#pragma omp ordered
+    { var++; }
   }
 
   fprintf(stderr, "DONE\n");
@@ -71,4 +68,6 @@ int main(int argc, char* argv[])
   return error;
 }
 
+// CHECK-NOT: ThreadSanitizer: data race
+// CHECK-NOT: ThreadSanitizer: reported
 // CHECK: DONE

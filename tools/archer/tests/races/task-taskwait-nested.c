@@ -53,29 +53,28 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <unistd.h>
 #include "ompt-signal.h"
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0, a = 0;
 
-  #pragma omp parallel num_threads(2) shared(var, a)
-  #pragma omp master
+#pragma omp parallel num_threads(2) shared(var, a)
+#pragma omp master
   {
-    #pragma omp task shared(var, a)
+#pragma omp task shared(var, a)
     {
-      #pragma omp task shared(var, a)
+#pragma omp task shared(var, a)
       {
         // wait for master to pass the taskwait
         OMPT_SIGNAL(a);
-        OMPT_WAIT(a,2);
+        OMPT_WAIT(a, 2);
         var++;
       }
     }
 
     // Give other thread time to steal the task and execute its child.
-    OMPT_WAIT(a,1);
+    OMPT_WAIT(a, 1);
 
-    // Only directly generated children are guaranteed to be executed.
-    #pragma omp taskwait
+// Only directly generated children are guaranteed to be executed.
+#pragma omp taskwait
     OMPT_SIGNAL(a);
     var++;
   }

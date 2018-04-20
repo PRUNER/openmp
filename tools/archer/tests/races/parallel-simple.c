@@ -51,14 +51,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #include <stdio.h>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0;
 
-  #pragma omp parallel num_threads(2) shared(var)
-  {
-    var++;
-  }
+#pragma omp parallel num_threads(2) shared(var)
+  { var++; }
 
   int error = (var != 2);
   fprintf(stderr, "DONE\n");

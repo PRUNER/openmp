@@ -51,18 +51,17 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <omp.h>
 #include <stdio.h>
 
-int main(int argc, char* argv[])
-{
+int main(int argc, char *argv[]) {
   int var = 0;
 
-  #pragma omp parallel num_threads(2) firstprivate(var)
-  {
-    var = 1;
-  }
+#pragma omp parallel num_threads(2) firstprivate(var)
+  { var = 1; }
 
   fprintf(stderr, "DONE\n");
   // var should still be 0!
   return var;
 }
 
+// CHECK-NOT: ThreadSanitizer: data race
+// CHECK-NOT: ThreadSanitizer: reported
 // CHECK: DONE
