@@ -1,0 +1,55 @@
+@AUTO_GEN_COMMENT@
+
+config.test_c_compiler = "@OPENMP_TEST_C_COMPILER@"
+config.test_cxx_compiler = "@OPENMP_TEST_CXX_COMPILER@"
+config.test_compiler_features = @OPENMP_TEST_COMPILER_FEATURES@
+config.test_filecheck = "@OPENMP_FILECHECK_EXECUTABLE@"
+config.test_openmp_flags = "@OPENMP_TEST_OPENMP_FLAGS@"
+config.test_extra_flags = "@OPENMP_TEST_FLAGS@"
+config.libomp_obj_root = "@CMAKE_CURRENT_BINARY_DIR@"
+config.omp_library_dir = "@LIBOMP_LIBRARY_DIR@"
+config.omp_header_dir = "@LIBOMP_INCLUDE_DIR@"
+config.operating_system = "@CMAKE_SYSTEM_NAME@"
+config.hwloc_library_dir = "@LIBOMP_HWLOC_LIBRARY_DIR@"
+config.using_hwloc = @LIBOMP_USE_HWLOC@
+config.has_ompt = @LIBOMP_OMPT_SUPPORT@ and @LIBOMP_OMPT_OPTIONAL@
+config.has_libm = @LIBOMP_HAVE_LIBM@
+config.has_libatomic = @LIBOMP_HAVE_LIBATOMIC@
+
+config.test_archer_flags = "@OPENMP_TEST_ARCHER_FLAGS@"
+config.libarcher_obj_root = "@CMAKE_CURRENT_BINARY_DIR@"
+
+config.archer_tools_dir = "@LIBARCHER_TOOLS_DIR@"
+config.archer_library_dir = "@LIBARCHER_LIB_PATH@"
+config.archer_runtime_dir = "@LIBARCHER_RUNTIME_PATH@"
+config.archer_library = "@LIBARCHER_LIB@"
+config.archer_runtime = "@LIBARCHER_RTL@"
+config.has_archer_library = @LIBARCHER_HAVE_ARCHER_LIBRARY@
+config.has_archer_runtime = @LIBARCHER_HAVE_ARCHER_RUNTIME@
+
+# print("\nStart")
+# print("config.test_c_compiler: " + str(config.test_c_compiler))
+# print("config.test_cxx_compiler: " + str(config.test_cxx_compiler))
+# print("config.test_compiler_features: " + str(config.test_compiler_features))
+# print("config.test_filecheck: " + str(config.test_filecheck))
+# print("config.test_archer_flags: " + str(config.test_archer_flags))
+# print("config.test_extra_flags: " + str(config.test_extra_flags))
+# print("config.libarcher_obj_root: " + str(config.libarcher_obj_root))
+# print("config.omp_library_dir: " + str(config.omp_library_dir))
+# print("config.omp_header_dir: " + str(config.omp_header_dir))
+# print("config.operating_system: " + str(config.operating_system))
+# print("config.has_ompt:" + str(config.has_ompt))
+# print("config.has_libm:" + str(config.has_libm))
+# print("config.has_libatomic: " + str(config.has_libatomic))
+# print("config.archer_tools_dir" + str(config.archer_tools_dir))
+# print("config.archer_library_dir: " + str(config.archer_library_dir))
+# print("config.archer_runtime_dir: " + str(config.archer_runtime_dir))
+# print("config.archer_library: " + str(config.archer_library))
+# print("config.archer_runtime: " + str(config.archer_runtime))
+# print("config.has_archer_library: " + str(config.has_archer_library))
+# print("config.has_archer_runtime: " + str(config.has_archer_runtime))
+# print("config.suppressions_archer_runtime_file: " + str(config.suppressions_archer_runtime_file))
+# print("End\n")
+
+# Let the main config do the real work.
+lit_config.load_config(config, "@CMAKE_CURRENT_SOURCE_DIR@/lit.cfg")
