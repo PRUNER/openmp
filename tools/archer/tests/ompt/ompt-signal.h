@@ -1,3 +1,15 @@
+/*
+ * ompt-signal.h -- Header providing low-level synchronization for tests
+ */
+
+//===----------------------------------------------------------------------===//
+//
+//                     The LLVM Compiler Infrastructure
+//
+// This file is a copy from runtime/test/ompt/
+//
+//===----------------------------------------------------------------------===//
+
 #if defined(WIN32) || defined(_WIN32)
 #include <windows.h>
 #define delay() Sleep(1);
