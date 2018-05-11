@@ -54,13 +54,14 @@ public:
 #endif
   int print_ompt_counters;
   int print_max_rss;
+  int verbose;
 
   ArcherFlags(const char *env)
       :
 #if (LLVM_VERSION) >= 40
         flush_shadow(0),
 #endif
-        print_ompt_counters(0), print_max_rss(0) {
+        print_ompt_counters(0), print_max_rss(0), verbose(0) {
     if (env) {
       std::vector<std::string> tokens;
       std::string token;
@@ -69,19 +70,20 @@ public:
       while (std::getline(iss, token, ' '))
         tokens.push_back(token);
 
-      int ret;
       for (std::vector<std::string>::iterator it = tokens.begin();
            it != tokens.end(); ++it) {
 #if (LLVM_VERSION) >= 40
-        ret = sscanf(it->c_str(), "flush_shadow=%d", &flush_shadow);
+        if (sscanf(it->c_str(), "flush_shadow=%d", &flush_shadow))
+          continue;
 #endif
-        ret =
-            sscanf(it->c_str(), "print_ompt_counters=%d", &print_ompt_counters);
-        ret = sscanf(it->c_str(), "print_max_rss=%d", &print_max_rss);
-        if (ret) {
-          std::cerr << "Illegal values for ARCHER_OPTIONS variable: " << token
-                    << std::endl;
-        }
+        if (sscanf(it->c_str(), "print_ompt_counters=%d", &print_ompt_counters))
+          continue;
+        if (sscanf(it->c_str(), "print_max_rss=%d", &print_max_rss))
+          continue;
+        if (sscanf(it->c_str(), "verbose=%d", &verbose))
+          continue;
+        std::cerr << "Illegal values for ARCHER_OPTIONS variable: " << token
+                  << std::endl;
       }
     }
   }
@@ -928,12 +930,25 @@ static void ompt_tsan_finalize(ompt_data_t *tool_data) {
 
 ompt_start_tool_result_t *ompt_start_tool(unsigned int omp_version,
                                           const char *runtime_version) {
+  const char *options = getenv("ARCHER_OPTIONS");
+  archer_flags = new ArcherFlags(options);
   static ompt_start_tool_result_t ompt_start_tool_result = {
       &ompt_tsan_initialize, &ompt_tsan_finalize, {0}};
   RunningOnValgrind();
   if (!runOnTsan) // if we are not running on TSAN, give a different tool the
-                  // chance to be loaded
+    // chance to be loaded
+  {
+    if (archer_flags->verbose)
+      std::cout << "Archer detected OpenMP application without TSan "
+                   "stopping operation"
+                << std::endl;
+    delete archer_flags;
     return NULL;
+  }
 
+  if (archer_flags->verbose)
+    std::cout << "Archer detected OpenMP application with TSan, supplying "
+                 "OpenMP synchronization semantics"
+              << std::endl;
   return &ompt_start_tool_result;
 }
