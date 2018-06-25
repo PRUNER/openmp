@@ -121,8 +121,25 @@ static void __kmp_linear_barrier_gather(
                   gtid, team->t.t_id, tid, __kmp_gtid_from_tid(i, team),
                   team->t.t_id, i));
         ANNOTATE_REDUCE_AFTER(reduce);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(gtid);
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
         (*reduce)(this_thr->th.th_local.reduce_data,
                   other_threads[i]->th.th_local.reduce_data);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
         ANNOTATE_REDUCE_BEFORE(reduce);
         ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
       }
@@ -309,8 +326,25 @@ __kmp_tree_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr, int gtid,
                   gtid, team->t.t_id, tid, __kmp_gtid_from_tid(child_tid, team),
                   team->t.t_id, child_tid));
         ANNOTATE_REDUCE_AFTER(reduce);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(gtid);
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
         (*reduce)(this_thr->th.th_local.reduce_data,
                   child_thr->th.th_local.reduce_data);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
         ANNOTATE_REDUCE_BEFORE(reduce);
         ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
       }
@@ -554,8 +588,25 @@ __kmp_hyper_barrier_gather(enum barrier_type bt, kmp_info_t *this_thr, int gtid,
                   gtid, team->t.t_id, tid, __kmp_gtid_from_tid(child_tid, team),
                   team->t.t_id, child_tid));
         ANNOTATE_REDUCE_AFTER(reduce);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(gtid);
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
         (*reduce)(this_thr->th.th_local.reduce_data,
                   child_thr->th.th_local.reduce_data);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
         ANNOTATE_REDUCE_BEFORE(reduce);
         ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
       }
@@ -868,6 +919,16 @@ static void __kmp_hierarchical_barrier_gather(
         flag.wait(this_thr, FALSE USE_ITT_BUILD_ARG(itt_sync_obj));
         if (reduce) {
           ANNOTATE_REDUCE_AFTER(reduce);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(gtid);
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
           for (child_tid = tid + 1; child_tid <= tid + thr_bar->leaf_kids;
                ++child_tid) {
             KA_TRACE(100, ("__kmp_hierarchical_barrier_gather: T#%d(%d:%d) += "
@@ -879,6 +940,13 @@ static void __kmp_hierarchical_barrier_gather(
             (*reduce)(this_thr->th.th_local.reduce_data,
                       other_threads[child_tid]->th.th_local.reduce_data);
           }
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
           ANNOTATE_REDUCE_BEFORE(reduce);
           ANNOTATE_REDUCE_BEFORE(&team->t.t_bar);
         }
@@ -1241,7 +1309,7 @@ int __kmp_barrier(enum barrier_type bt, int gtid, int is_split,
 #if OMPT_OPTIONAL
     my_task_data = OMPT_CUR_TASK_DATA(this_thr);
     my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
-    return_address = OMPT_LOAD_RETURN_ADDRESS(gtid);
+    return_address = OMPT_PEEK_RETURN_ADDRESS(gtid);
     if (ompt_enabled.ompt_callback_sync_region) {
       ompt_callbacks.ompt_callback(ompt_callback_sync_region)(
           ompt_sync_region_barrier, ompt_scope_begin, my_parallel_data,

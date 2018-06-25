@@ -151,6 +151,8 @@
     macro (ompt_callback_flush,             ompt_callback_flush_t,             29) /* after executing flush           */ \
                                                                                                                          \
     macro (ompt_callback_cancel,            ompt_callback_cancel_t,            30) /* cancel innermost binding region */ \
+                                                                                                                         \
+    macro (ompt_callback_reduction,         ompt_callback_sync_region_t,       31) /* reduction                       */
 
 
 
@@ -511,7 +513,8 @@ typedef void (*ompt_callback_work_t) (
 typedef enum ompt_sync_region_kind_t {
     ompt_sync_region_barrier   = 1,
     ompt_sync_region_taskwait  = 2,
-    ompt_sync_region_taskgroup = 3
+    ompt_sync_region_taskgroup = 3,
+    ompt_sync_region_reduction = 7
 } ompt_sync_region_kind_t;
 
 typedef void (*ompt_callback_sync_region_t) (
