@@ -310,6 +310,8 @@ on_ompt_callback_sync_region(
         case ompt_sync_region_taskgroup:
           printf("%" PRIu64 ": ompt_event_taskgroup_begin: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", codeptr_ra=%p\n", ompt_get_thread_data()->value, parallel_data->value, task_data->value, codeptr_ra);
           break;
+        default:
+          break;
       }
       break;
     case ompt_scope_end:
@@ -323,6 +325,8 @@ on_ompt_callback_sync_region(
           break;
         case ompt_sync_region_taskgroup:
           printf("%" PRIu64 ": ompt_event_taskgroup_end: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", codeptr_ra=%p\n", ompt_get_thread_data()->value, (parallel_data)?parallel_data->value:0, task_data->value, codeptr_ra);
+          break;
+        default:
           break;
       }
       break;
@@ -351,6 +355,8 @@ on_ompt_callback_sync_region_wait(
         case ompt_sync_region_taskgroup:
           printf("%" PRIu64 ": ompt_event_wait_taskgroup_begin: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", codeptr_ra=%p\n", ompt_get_thread_data()->value, parallel_data->value, task_data->value, codeptr_ra);
           break;
+        default:
+          break;
       }
       break;
     case ompt_scope_end:
@@ -364,6 +370,8 @@ on_ompt_callback_sync_region_wait(
           break;
         case ompt_sync_region_taskgroup:
           printf("%" PRIu64 ": ompt_event_wait_taskgroup_end: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", codeptr_ra=%p\n", ompt_get_thread_data()->value, (parallel_data)?parallel_data->value:0, task_data->value, codeptr_ra);
+          break;
+        default:
           break;
       }
       break;

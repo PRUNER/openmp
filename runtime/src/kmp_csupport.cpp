@@ -3314,18 +3314,48 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
       loc, global_tid, num_vars, reduce_size, reduce_data, reduce_func, lck);
   __KMP_SET_REDUCTION_METHOD(global_tid, packed_reduction_method);
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  kmp_info_t *this_thr = __kmp_threads[global_tid];
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+#endif
   if (packed_reduction_method == critical_reduce_block) {
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
     __kmp_enter_critical_section_reduce_block(loc, global_tid, lck);
     retval = 1;
 
   } else if (packed_reduction_method == empty_reduce_block) {
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
+
     // usage: if team size == 1, no synchronization is required ( Intel
     // platforms only )
     retval = 1;
 
   } else if (packed_reduction_method == atomic_reduce_block) {
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
     retval = 2;
 
@@ -3422,6 +3452,19 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
   KA_TRACE(10, ("__kmpc_end_reduce_nowait() enter: called T#%d\n", global_tid));
 
   packed_reduction_method = __KMP_GET_REDUCTION_METHOD(global_tid);
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  kmp_info_t *this_thr = __kmp_threads[global_tid];
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
   if (packed_reduction_method == critical_reduce_block) {
 
