@@ -3349,14 +3349,6 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
 
   } else if (packed_reduction_method == atomic_reduce_block) {
 
-#if OMPT_SUPPORT && OMPT_OPTIONAL
-  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
-      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
-          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
-          my_task_data, return_address);
-    }
-#endif
-
     retval = 2;
 
     // all threads should do this pop here (because __kmpc_end_reduce_nowait()
@@ -3458,7 +3450,12 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
   ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
   ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
   void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+#endif
 
+  if (packed_reduction_method == critical_reduce_block) {
+
+    __kmp_end_critical_section_reduce_block(loc, global_tid, lck);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
       ompt_callbacks.ompt_callback(ompt_callback_reduction)(
           ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
@@ -3466,14 +3463,18 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
     }
 #endif
 
-  if (packed_reduction_method == critical_reduce_block) {
-
-    __kmp_end_critical_section_reduce_block(loc, global_tid, lck);
-
   } else if (packed_reduction_method == empty_reduce_block) {
 
     // usage: if team size == 1, no synchronization is required ( on Intel
     // platforms only )
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
   } else if (packed_reduction_method == atomic_reduce_block) {
 
@@ -3486,6 +3487,14 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
                                    tree_reduce_block)) {
 
     // only master gets here
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
   } else {
 
@@ -3596,14 +3605,7 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     retval = 1;
 
   } else if (packed_reduction_method == atomic_reduce_block) {
-    
-#if OMPT_SUPPORT && OMPT_OPTIONAL
-  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
-      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
-          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
-          my_task_data, return_address);
-    }
-#endif
+
     retval = 2;
 
   } else if (TEST_REDUCTION_METHOD(packed_reduction_method,
@@ -3765,14 +3767,6 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
 #endif
 
   } else if (packed_reduction_method == atomic_reduce_block) {
-
-#if OMPT_SUPPORT && OMPT_OPTIONAL
-  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
-      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
-          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
-          my_task_data, return_address);
-    }
-#endif
 
 #if OMPT_SUPPORT
     omp_frame_t *ompt_frame;

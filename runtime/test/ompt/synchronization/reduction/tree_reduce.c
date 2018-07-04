@@ -1,5 +1,4 @@
 // RUN: %libomp-compile-and-run | %sort-threads | FileCheck %s
-// RUN: %libomp-compile -DNOWAIT && %libomp-run | %sort-threads | FileCheck %s
 // REQUIRES: ompt
 #include "callback.h"
 #include <omp.h>
