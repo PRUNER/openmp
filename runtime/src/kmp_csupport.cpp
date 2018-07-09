@@ -3795,14 +3795,6 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_end_split_barrier(UNPACK_REDUCTION_BARRIER(packed_reduction_method),
                             global_tid);
 
-#if OMPT_SUPPORT && OMPT_OPTIONAL
-  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
-      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
-          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
-          my_task_data, return_address);
-    }
-#endif
-    
   } else {
 
     // should never reach this block

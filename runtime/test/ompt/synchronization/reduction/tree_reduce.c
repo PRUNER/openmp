@@ -26,8 +26,15 @@ int main()
   // CHECK-SAME: parallel_id=[[PARALLEL_ID:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID:[0-9]+]]
 
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_reduction_begin: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_reduction_end: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // order and distribution to threads not determined
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_begin: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_end: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_begin: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_end: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_begin: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_end: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_begin: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
+  // CHECK-DAG: {{^}}{{[0-f]+}}: ompt_event_reduction_end: parallel_id=[[PARALLEL_ID]], task_id=[[TASK_ID]], codeptr_ra=
 
   return 0;
 }
