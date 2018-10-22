@@ -357,7 +357,7 @@ kmp_int32 __kmpc_omp_task_with_deps(ident_t *loc_ref, kmp_int32 gtid,
     OMPT_STORE_RETURN_ADDRESS(gtid);
     if (!current_task->ompt_task_info.frame.enter_frame.ptr)
       current_task->ompt_task_info.frame.enter_frame.ptr =
-          OMPT_GET_FRAME_ADDRESS(1);
+          OMPT_GET_FRAME_ADDRESS(0);
     if (ompt_enabled.ompt_callback_task_create) {
       ompt_data_t task_data = ompt_data_none;
       ompt_callbacks.ompt_callback(ompt_callback_task_create)(

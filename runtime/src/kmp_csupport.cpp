@@ -305,7 +305,7 @@ void __kmpc_fork_call(ident_t *loc, kmp_int32 argc, kmpc_micro microtask, ...) {
         ompt_frame = &(
             parent_team->t.t_implicit_task_taskdata[tid].ompt_task_info.frame);
       }
-      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
       OMPT_STORE_RETURN_ADDRESS(gtid);
     }
 #endif
@@ -395,7 +395,7 @@ void __kmpc_fork_teams(ident_t *loc, kmp_int32 argc, kmpc_micro microtask,
   int tid = __kmp_tid_from_gtid(gtid);
   if (ompt_enabled.enabled) {
     parent_team->t.t_implicit_task_taskdata[tid]
-        .ompt_task_info.frame.enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+        .ompt_task_info.frame.enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
   }
   OMPT_STORE_RETURN_ADDRESS(gtid);
 #endif
@@ -709,7 +709,7 @@ void __kmpc_barrier(ident_t *loc, kmp_int32 global_tid) {
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
     if (ompt_frame->enter_frame.ptr == NULL)
-      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
     OMPT_STORE_RETURN_ADDRESS(global_tid);
   }
 #endif
@@ -1598,7 +1598,7 @@ kmp_int32 __kmpc_barrier_master(ident_t *loc, kmp_int32 global_tid) {
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
     if (ompt_frame->enter_frame.ptr == NULL)
-      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
     OMPT_STORE_RETURN_ADDRESS(global_tid);
   }
 #endif
@@ -1660,7 +1660,7 @@ kmp_int32 __kmpc_barrier_master_nowait(ident_t *loc, kmp_int32 global_tid) {
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
     if (ompt_frame->enter_frame.ptr == NULL)
-      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
     OMPT_STORE_RETURN_ADDRESS(global_tid);
   }
 #endif
@@ -2010,7 +2010,7 @@ void __kmpc_copyprivate(ident_t *loc, kmp_int32 gtid, size_t cpy_size,
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
     if (ompt_frame->enter_frame.ptr == NULL)
-      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
     OMPT_STORE_RETURN_ADDRESS(gtid);
   }
 #endif
@@ -3396,7 +3396,7 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
       if (ompt_frame->enter_frame.ptr == NULL)
-        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3577,7 +3577,7 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
       if (ompt_frame->enter_frame.ptr == NULL)
-        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3663,7 +3663,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
       if (ompt_frame->enter_frame.ptr == NULL)
-        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3687,7 +3687,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
       if (ompt_frame->enter_frame.ptr == NULL)
-        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3708,7 +3708,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
       if (ompt_frame->enter_frame.ptr == NULL)
-        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
