@@ -293,7 +293,7 @@ void __kmpc_fork_call(ident_t *loc, kmp_int32 argc, kmpc_micro microtask, ...) {
     va_start(ap, microtask);
 
 #if OMPT_SUPPORT
-    omp_frame_t *ompt_frame;
+    ompt_frame_t *ompt_frame;
     if (ompt_enabled.enabled) {
       kmp_info_t *master_th = __kmp_threads[gtid];
       kmp_team_t *parent_team = master_th->th.th_team;
@@ -305,7 +305,7 @@ void __kmpc_fork_call(ident_t *loc, kmp_int32 argc, kmpc_micro microtask, ...) {
         ompt_frame = &(
             parent_team->t.t_implicit_task_taskdata[tid].ompt_task_info.frame);
       }
-      ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
       OMPT_STORE_RETURN_ADDRESS(gtid);
     }
 #endif
@@ -395,7 +395,7 @@ void __kmpc_fork_teams(ident_t *loc, kmp_int32 argc, kmpc_micro microtask,
   int tid = __kmp_tid_from_gtid(gtid);
   if (ompt_enabled.enabled) {
     parent_team->t.t_implicit_task_taskdata[tid]
-        .ompt_task_info.frame.enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+        .ompt_task_info.frame.enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
   }
   OMPT_STORE_RETURN_ADDRESS(gtid);
 #endif
@@ -506,12 +506,12 @@ void __kmpc_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
 
 #if OMPT_SUPPORT
   if (ompt_enabled.enabled &&
-      this_thr->th.ompt_thread_info.state != omp_state_overhead) {
-    OMPT_CUR_TASK_INFO(this_thr)->frame.exit_frame = NULL;
+      this_thr->th.ompt_thread_info.state != ompt_state_overhead) {
+    OMPT_CUR_TASK_INFO(this_thr)->frame.exit_frame.ptr = NULL;
     if (ompt_enabled.ompt_callback_implicit_task) {
       ompt_callbacks.ompt_callback(ompt_callback_implicit_task)(
           ompt_scope_end, NULL, OMPT_CUR_TASK_DATA(this_thr), 1,
-          OMPT_CUR_TASK_INFO(this_thr)->thread_num);
+          OMPT_CUR_TASK_INFO(this_thr)->thread_num, 0);
     }
 
     // reset clear the task id only after unlinking the task
@@ -524,7 +524,7 @@ void __kmpc_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
           ompt_parallel_invoker_program, OMPT_LOAD_RETURN_ADDRESS(global_tid));
     }
     __ompt_lw_taskteam_unlink(this_thr);
-    this_thr->th.ompt_thread_info.state = omp_state_overhead;
+    this_thr->th.ompt_thread_info.state = ompt_state_overhead;
   }
 #endif
 
@@ -606,8 +606,8 @@ void __kmpc_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
 #if OMPT_SUPPORT
   if (ompt_enabled.enabled)
     this_thr->th.ompt_thread_info.state =
-        ((this_thr->th.th_team_serialized) ? omp_state_work_serial
-                                           : omp_state_work_parallel);
+        ((this_thr->th.th_team_serialized) ? ompt_state_work_serial
+                                           : ompt_state_work_parallel);
 #endif
 }
 
@@ -705,11 +705,11 @@ void __kmpc_barrier(ident_t *loc, kmp_int32 global_tid) {
   }
 
 #if OMPT_SUPPORT
-  omp_frame_t *ompt_frame;
+  ompt_frame_t *ompt_frame;
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-    if (ompt_frame->enter_frame == NULL)
-      ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+    if (ompt_frame->enter_frame.ptr == NULL)
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
     OMPT_STORE_RETURN_ADDRESS(global_tid);
   }
 #endif
@@ -724,7 +724,7 @@ void __kmpc_barrier(ident_t *loc, kmp_int32 global_tid) {
   __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame = NULL;
+    ompt_frame->enter_frame.ptr = NULL;
   }
 #endif
 }
@@ -843,22 +843,22 @@ void __kmpc_ordered(ident_t *loc, kmp_int32 gtid) {
 
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   kmp_team_t *team;
-  omp_wait_id_t lck;
+  ompt_wait_id_t lck;
   void *codeptr_ra;
   if (ompt_enabled.enabled) {
     OMPT_STORE_RETURN_ADDRESS(gtid);
     team = __kmp_team_from_gtid(gtid);
-    lck = (omp_wait_id_t)&team->t.t_ordered.dt.t_value;
+    lck = (ompt_wait_id_t)&team->t.t_ordered.dt.t_value;
     /* OMPT state update */
     th->th.ompt_thread_info.wait_id = lck;
-    th->th.ompt_thread_info.state = omp_state_wait_ordered;
+    th->th.ompt_thread_info.state = ompt_state_wait_ordered;
 
     /* OMPT event callback */
     codeptr_ra = OMPT_LOAD_RETURN_ADDRESS(gtid);
     if (ompt_enabled.ompt_callback_mutex_acquire) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
           ompt_mutex_ordered, omp_lock_hint_none, kmp_mutex_impl_spin,
-          (omp_wait_id_t)lck, codeptr_ra);
+          (ompt_wait_id_t)lck, codeptr_ra);
     }
   }
 #endif
@@ -871,13 +871,13 @@ void __kmpc_ordered(ident_t *loc, kmp_int32 gtid) {
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
     /* OMPT state update */
-    th->th.ompt_thread_info.state = omp_state_work_parallel;
+    th->th.ompt_thread_info.state = ompt_state_work_parallel;
     th->th.ompt_thread_info.wait_id = 0;
 
     /* OMPT event callback */
     if (ompt_enabled.ompt_callback_mutex_acquired) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-          ompt_mutex_ordered, (omp_wait_id_t)lck, codeptr_ra);
+          ompt_mutex_ordered, (ompt_wait_id_t)lck, codeptr_ra);
     }
   }
 #endif
@@ -917,7 +917,7 @@ void __kmpc_end_ordered(ident_t *loc, kmp_int32 gtid) {
   if (ompt_enabled.ompt_callback_mutex_released) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
         ompt_mutex_ordered,
-        (omp_wait_id_t)&__kmp_team_from_gtid(gtid)->t.t_ordered.dt.t_value,
+        (ompt_wait_id_t)&__kmp_team_from_gtid(gtid)->t.t_ordered.dt.t_value,
         OMPT_LOAD_RETURN_ADDRESS(gtid));
   }
 #endif
@@ -1144,7 +1144,7 @@ void __kmpc_critical(ident_t *loc, kmp_int32 global_tid,
 #else
   KMP_COUNT_BLOCK(OMP_CRITICAL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
-  omp_state_t prev_state = omp_state_undefined;
+  ompt_state_t prev_state = ompt_state_undefined;
   ompt_thread_info_t ti;
 #endif
   kmp_user_lock_p lck;
@@ -1188,15 +1188,15 @@ void __kmpc_critical(ident_t *loc, kmp_int32 global_tid,
     ti = __kmp_threads[global_tid]->th.ompt_thread_info;
     /* OMPT state update */
     prev_state = ti.state;
-    ti.wait_id = (omp_wait_id_t)lck;
-    ti.state = omp_state_wait_critical;
+    ti.wait_id = (ompt_wait_id_t)lck;
+    ti.state = ompt_state_wait_critical;
 
     /* OMPT event callback */
     codeptr_ra = OMPT_LOAD_RETURN_ADDRESS(gtid);
     if (ompt_enabled.ompt_callback_mutex_acquire) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
           ompt_mutex_critical, omp_lock_hint_none, __ompt_get_mutex_impl_type(),
-          (omp_wait_id_t)crit, codeptr_ra);
+          (ompt_wait_id_t)crit, codeptr_ra);
     }
   }
 #endif
@@ -1216,7 +1216,7 @@ void __kmpc_critical(ident_t *loc, kmp_int32 global_tid,
     /* OMPT event callback */
     if (ompt_enabled.ompt_callback_mutex_acquired) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-          ompt_mutex_critical, (omp_wait_id_t)crit, codeptr_ra);
+          ompt_mutex_critical, (ompt_wait_id_t)crit, codeptr_ra);
     }
   }
 #endif
@@ -1363,7 +1363,7 @@ void __kmpc_critical_with_hint(ident_t *loc, kmp_int32 global_tid,
   KMP_COUNT_BLOCK(OMP_CRITICAL);
   kmp_user_lock_p lck;
 #if OMPT_SUPPORT && OMPT_OPTIONAL
-  omp_state_t prev_state = omp_state_undefined;
+  ompt_state_t prev_state = ompt_state_undefined;
   ompt_thread_info_t ti;
   // This is the case, if called from __kmpc_critical:
   void *codeptr = OMPT_LOAD_RETURN_ADDRESS(global_tid);
@@ -1402,14 +1402,14 @@ void __kmpc_critical_with_hint(ident_t *loc, kmp_int32 global_tid,
       ti = __kmp_threads[global_tid]->th.ompt_thread_info;
       /* OMPT state update */
       prev_state = ti.state;
-      ti.wait_id = (omp_wait_id_t)lck;
-      ti.state = omp_state_wait_critical;
+      ti.wait_id = (ompt_wait_id_t)lck;
+      ti.state = ompt_state_wait_critical;
 
       /* OMPT event callback */
       if (ompt_enabled.ompt_callback_mutex_acquire) {
         ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
             ompt_mutex_critical, (unsigned int)hint,
-            __ompt_get_mutex_impl_type(crit), (omp_wait_id_t)crit, codeptr);
+            __ompt_get_mutex_impl_type(crit), (ompt_wait_id_t)crit, codeptr);
       }
     }
 #endif
@@ -1440,14 +1440,14 @@ void __kmpc_critical_with_hint(ident_t *loc, kmp_int32 global_tid,
       ti = __kmp_threads[global_tid]->th.ompt_thread_info;
       /* OMPT state update */
       prev_state = ti.state;
-      ti.wait_id = (omp_wait_id_t)lck;
-      ti.state = omp_state_wait_critical;
+      ti.wait_id = (ompt_wait_id_t)lck;
+      ti.state = ompt_state_wait_critical;
 
       /* OMPT event callback */
       if (ompt_enabled.ompt_callback_mutex_acquire) {
         ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
             ompt_mutex_critical, (unsigned int)hint,
-            __ompt_get_mutex_impl_type(0, ilk), (omp_wait_id_t)crit, codeptr);
+            __ompt_get_mutex_impl_type(0, ilk), (ompt_wait_id_t)crit, codeptr);
       }
     }
 #endif
@@ -1467,7 +1467,7 @@ void __kmpc_critical_with_hint(ident_t *loc, kmp_int32 global_tid,
     /* OMPT event callback */
     if (ompt_enabled.ompt_callback_mutex_acquired) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-          ompt_mutex_critical, (omp_wait_id_t)crit, codeptr);
+          ompt_mutex_critical, (ompt_wait_id_t)crit, codeptr);
     }
   }
 #endif
@@ -1565,7 +1565,7 @@ void __kmpc_end_critical(ident_t *loc, kmp_int32 global_tid,
   OMPT_STORE_RETURN_ADDRESS(global_tid);
   if (ompt_enabled.ompt_callback_mutex_released) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-        ompt_mutex_critical, (omp_wait_id_t)crit, OMPT_LOAD_RETURN_ADDRESS(0));
+        ompt_mutex_critical, (ompt_wait_id_t)crit, OMPT_LOAD_RETURN_ADDRESS(0));
   }
 #endif
 
@@ -1594,11 +1594,11 @@ kmp_int32 __kmpc_barrier_master(ident_t *loc, kmp_int32 global_tid) {
     __kmp_check_barrier(global_tid, ct_barrier, loc);
 
 #if OMPT_SUPPORT
-  omp_frame_t *ompt_frame;
+  ompt_frame_t *ompt_frame;
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-    if (ompt_frame->enter_frame == NULL)
-      ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+    if (ompt_frame->enter_frame.ptr == NULL)
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
     OMPT_STORE_RETURN_ADDRESS(global_tid);
   }
 #endif
@@ -1608,7 +1608,7 @@ kmp_int32 __kmpc_barrier_master(ident_t *loc, kmp_int32 global_tid) {
   status = __kmp_barrier(bs_plain_barrier, global_tid, TRUE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame = NULL;
+    ompt_frame->enter_frame.ptr = NULL;
   }
 #endif
 
@@ -1656,11 +1656,11 @@ kmp_int32 __kmpc_barrier_master_nowait(ident_t *loc, kmp_int32 global_tid) {
   }
 
 #if OMPT_SUPPORT
-  omp_frame_t *ompt_frame;
+  ompt_frame_t *ompt_frame;
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-    if (ompt_frame->enter_frame == NULL)
-      ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+    if (ompt_frame->enter_frame.ptr == NULL)
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
     OMPT_STORE_RETURN_ADDRESS(global_tid);
   }
 #endif
@@ -1670,7 +1670,7 @@ kmp_int32 __kmpc_barrier_master_nowait(ident_t *loc, kmp_int32 global_tid) {
   __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame = NULL;
+    ompt_frame->enter_frame.ptr = NULL;
   }
 #endif
 
@@ -2006,11 +2006,11 @@ void __kmpc_copyprivate(ident_t *loc, kmp_int32 gtid, size_t cpy_size,
     *data_ptr = cpy_data;
 
 #if OMPT_SUPPORT
-  omp_frame_t *ompt_frame;
+  ompt_frame_t *ompt_frame;
   if (ompt_enabled.enabled) {
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-    if (ompt_frame->enter_frame == NULL)
-      ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+    if (ompt_frame->enter_frame.ptr == NULL)
+      ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
     OMPT_STORE_RETURN_ADDRESS(gtid);
   }
 #endif
@@ -2038,7 +2038,7 @@ void __kmpc_copyprivate(ident_t *loc, kmp_int32 gtid, size_t cpy_size,
   __kmp_barrier(bs_plain_barrier, gtid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame = NULL;
+    ompt_frame->enter_frame.ptr = NULL;
   }
 #endif
 }
@@ -2136,7 +2136,7 @@ void __kmpc_init_lock_with_hint(ident_t *loc, kmp_int32 gtid, void **user_lock,
   if (ompt_enabled.ompt_callback_lock_init) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_init)(
         ompt_mutex_lock, (omp_lock_hint_t)hint,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -2160,7 +2160,7 @@ void __kmpc_init_nest_lock_with_hint(ident_t *loc, kmp_int32 gtid,
   if (ompt_enabled.ompt_callback_lock_init) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_init)(
         ompt_mutex_nest_lock, (omp_lock_hint_t)hint,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -2186,7 +2186,7 @@ void __kmpc_init_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_lock_init) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_init)(
         ompt_mutex_lock, omp_lock_hint_none,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -2229,7 +2229,7 @@ void __kmpc_init_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_lock_init) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_init)(
         ompt_mutex_lock, omp_lock_hint_none, __ompt_get_mutex_impl_type(),
-        (omp_wait_id_t)user_lock, codeptr);
+        (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
 
@@ -2258,7 +2258,7 @@ void __kmpc_init_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_lock_init) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_init)(
         ompt_mutex_nest_lock, omp_lock_hint_none,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -2304,7 +2304,7 @@ void __kmpc_init_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_lock_init) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_init)(
         ompt_mutex_nest_lock, omp_lock_hint_none, __ompt_get_mutex_impl_type(),
-        (omp_wait_id_t)user_lock, codeptr);
+        (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
 
@@ -2340,7 +2340,7 @@ void __kmpc_destroy_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       lck = (kmp_user_lock_p)user_lock;
     }
     ompt_callbacks.ompt_callback(ompt_callback_lock_destroy)(
-        ompt_mutex_lock, (omp_wait_id_t)user_lock, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
   KMP_D_LOCK_FUNC(user_lock, destroy)((kmp_dyna_lock_t *)user_lock);
@@ -2368,7 +2368,7 @@ void __kmpc_destroy_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     codeptr = OMPT_GET_RETURN_ADDRESS(0);
   if (ompt_enabled.ompt_callback_lock_destroy) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_destroy)(
-        ompt_mutex_lock, (omp_wait_id_t)user_lock, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
 
@@ -2408,7 +2408,7 @@ void __kmpc_destroy_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     codeptr = OMPT_GET_RETURN_ADDRESS(0);
   if (ompt_enabled.ompt_callback_lock_destroy) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_destroy)(
-        ompt_mutex_nest_lock, (omp_wait_id_t)user_lock, codeptr);
+        ompt_mutex_nest_lock, (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
   KMP_D_LOCK_FUNC(user_lock, destroy)((kmp_dyna_lock_t *)user_lock);
@@ -2440,7 +2440,7 @@ void __kmpc_destroy_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     codeptr = OMPT_GET_RETURN_ADDRESS(0);
   if (ompt_enabled.ompt_callback_lock_destroy) {
     ompt_callbacks.ompt_callback(ompt_callback_lock_destroy)(
-        ompt_mutex_nest_lock, (omp_wait_id_t)user_lock, codeptr);
+        ompt_mutex_nest_lock, (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
 
@@ -2485,7 +2485,7 @@ void __kmpc_set_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_mutex_acquire) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
         ompt_mutex_lock, omp_lock_hint_none,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -2507,7 +2507,7 @@ void __kmpc_set_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.ompt_callback_mutex_acquired) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-        ompt_mutex_lock, (omp_wait_id_t)user_lock, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
 
@@ -2540,7 +2540,7 @@ void __kmpc_set_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_mutex_acquire) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
         ompt_mutex_lock, omp_lock_hint_none, __ompt_get_mutex_impl_type(),
-        (omp_wait_id_t)lck, codeptr);
+        (ompt_wait_id_t)lck, codeptr);
   }
 #endif
 
@@ -2553,7 +2553,7 @@ void __kmpc_set_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.ompt_callback_mutex_acquired) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-        ompt_mutex_lock, (omp_wait_id_t)lck, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)lck, codeptr);
   }
 #endif
 
@@ -2575,7 +2575,7 @@ void __kmpc_set_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     if (ompt_enabled.ompt_callback_mutex_acquire) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
           ompt_mutex_nest_lock, omp_lock_hint_none,
-          __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+          __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
           codeptr);
     }
   }
@@ -2593,13 +2593,13 @@ void __kmpc_set_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       if (ompt_enabled.ompt_callback_mutex_acquired) {
         // lock_first
         ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-            ompt_mutex_nest_lock, (omp_wait_id_t)user_lock, codeptr);
+            ompt_mutex_nest_lock, (ompt_wait_id_t)user_lock, codeptr);
       }
     } else {
       if (ompt_enabled.ompt_callback_nest_lock) {
         // lock_next
         ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-            ompt_scope_begin, (omp_wait_id_t)user_lock, codeptr);
+            ompt_scope_begin, (ompt_wait_id_t)user_lock, codeptr);
       }
     }
   }
@@ -2637,7 +2637,7 @@ void __kmpc_set_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     if (ompt_enabled.ompt_callback_mutex_acquire) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
           ompt_mutex_nest_lock, omp_lock_hint_none,
-          __ompt_get_mutex_impl_type(), (omp_wait_id_t)lck, codeptr);
+          __ompt_get_mutex_impl_type(), (ompt_wait_id_t)lck, codeptr);
     }
   }
 #endif
@@ -2654,13 +2654,13 @@ void __kmpc_set_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       if (ompt_enabled.ompt_callback_mutex_acquired) {
         // lock_first
         ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-            ompt_mutex_nest_lock, (omp_wait_id_t)lck, codeptr);
+            ompt_mutex_nest_lock, (ompt_wait_id_t)lck, codeptr);
       }
     } else {
       if (ompt_enabled.ompt_callback_nest_lock) {
         // lock_next
         ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-            ompt_scope_begin, (omp_wait_id_t)lck, codeptr);
+            ompt_scope_begin, (ompt_wait_id_t)lck, codeptr);
       }
     }
   }
@@ -2696,7 +2696,7 @@ void __kmpc_unset_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     codeptr = OMPT_GET_RETURN_ADDRESS(0);
   if (ompt_enabled.ompt_callback_mutex_released) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-        ompt_mutex_lock, (omp_wait_id_t)user_lock, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)user_lock, codeptr);
   }
 #endif
 
@@ -2725,7 +2725,7 @@ void __kmpc_unset_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       codeptr = OMPT_GET_RETURN_ADDRESS(0);
     if (ompt_enabled.ompt_callback_mutex_released) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-          ompt_mutex_lock, (omp_wait_id_t)lck, codeptr);
+          ompt_mutex_lock, (ompt_wait_id_t)lck, codeptr);
     }
 #endif
 
@@ -2757,7 +2757,7 @@ void __kmpc_unset_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
     codeptr = OMPT_GET_RETURN_ADDRESS(0);
   if (ompt_enabled.ompt_callback_mutex_released) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-        ompt_mutex_lock, (omp_wait_id_t)lck, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)lck, codeptr);
   }
 #endif
 
@@ -2785,12 +2785,12 @@ void __kmpc_unset_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       if (ompt_enabled.ompt_callback_mutex_released) {
         // release_lock_last
         ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-            ompt_mutex_nest_lock, (omp_wait_id_t)user_lock, codeptr);
+            ompt_mutex_nest_lock, (ompt_wait_id_t)user_lock, codeptr);
       }
     } else if (ompt_enabled.ompt_callback_nest_lock) {
       // release_lock_prev
       ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-          ompt_scope_end, (omp_wait_id_t)user_lock, codeptr);
+          ompt_scope_end, (ompt_wait_id_t)user_lock, codeptr);
     }
   }
 #endif
@@ -2834,12 +2834,12 @@ void __kmpc_unset_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
         if (ompt_enabled.ompt_callback_mutex_released) {
           // release_lock_last
           ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-              ompt_mutex_nest_lock, (omp_wait_id_t)lck, codeptr);
+              ompt_mutex_nest_lock, (ompt_wait_id_t)lck, codeptr);
         }
       } else if (ompt_enabled.ompt_callback_nest_lock) {
         // release_lock_previous
         ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-            ompt_mutex_scope_end, (omp_wait_id_t)lck, codeptr);
+            ompt_mutex_scope_end, (ompt_wait_id_t)lck, codeptr);
       }
     }
 #endif
@@ -2876,12 +2876,12 @@ void __kmpc_unset_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       if (ompt_enabled.ompt_callback_mutex_released) {
         // release_lock_last
         ompt_callbacks.ompt_callback(ompt_callback_mutex_released)(
-            ompt_mutex_nest_lock, (omp_wait_id_t)lck, codeptr);
+            ompt_mutex_nest_lock, (ompt_wait_id_t)lck, codeptr);
       }
     } else if (ompt_enabled.ompt_callback_nest_lock) {
       // release_lock_previous
       ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-          ompt_mutex_scope_end, (omp_wait_id_t)lck, codeptr);
+          ompt_mutex_scope_end, (ompt_wait_id_t)lck, codeptr);
     }
   }
 #endif
@@ -2907,7 +2907,7 @@ int __kmpc_test_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_mutex_acquire) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
         ompt_mutex_lock, omp_lock_hint_none,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -2930,7 +2930,7 @@ int __kmpc_test_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.ompt_callback_mutex_acquired) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-          ompt_mutex_lock, (omp_wait_id_t)user_lock, codeptr);
+          ompt_mutex_lock, (ompt_wait_id_t)user_lock, codeptr);
     }
 #endif
     return FTN_TRUE;
@@ -2971,7 +2971,7 @@ int __kmpc_test_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_mutex_acquire) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
         ompt_mutex_lock, omp_lock_hint_none, __ompt_get_mutex_impl_type(),
-        (omp_wait_id_t)lck, codeptr);
+        (ompt_wait_id_t)lck, codeptr);
   }
 #endif
 
@@ -2986,7 +2986,7 @@ int __kmpc_test_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (rc && ompt_enabled.ompt_callback_mutex_acquired) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-        ompt_mutex_lock, (omp_wait_id_t)lck, codeptr);
+        ompt_mutex_lock, (ompt_wait_id_t)lck, codeptr);
   }
 #endif
 
@@ -3012,7 +3012,7 @@ int __kmpc_test_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
   if (ompt_enabled.ompt_callback_mutex_acquire) {
     ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
         ompt_mutex_nest_lock, omp_lock_hint_none,
-        __ompt_get_mutex_impl_type(user_lock), (omp_wait_id_t)user_lock,
+        __ompt_get_mutex_impl_type(user_lock), (ompt_wait_id_t)user_lock,
         codeptr);
   }
 #endif
@@ -3030,13 +3030,13 @@ int __kmpc_test_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       if (ompt_enabled.ompt_callback_mutex_acquired) {
         // lock_first
         ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-            ompt_mutex_nest_lock, (omp_wait_id_t)user_lock, codeptr);
+            ompt_mutex_nest_lock, (ompt_wait_id_t)user_lock, codeptr);
       }
     } else {
       if (ompt_enabled.ompt_callback_nest_lock) {
         // lock_next
         ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-            ompt_scope_begin, (omp_wait_id_t)user_lock, codeptr);
+            ompt_scope_begin, (ompt_wait_id_t)user_lock, codeptr);
       }
     }
   }
@@ -3077,7 +3077,7 @@ int __kmpc_test_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
         ompt_enabled.ompt_callback_mutex_acquire) {
       ompt_callbacks.ompt_callback(ompt_callback_mutex_acquire)(
           ompt_mutex_nest_lock, omp_lock_hint_none,
-          __ompt_get_mutex_impl_type(), (omp_wait_id_t)lck, codeptr);
+          __ompt_get_mutex_impl_type(), (ompt_wait_id_t)lck, codeptr);
     }
 #endif
 
@@ -3095,13 +3095,13 @@ int __kmpc_test_nest_lock(ident_t *loc, kmp_int32 gtid, void **user_lock) {
       if (ompt_enabled.ompt_callback_mutex_acquired) {
         // lock_first
         ompt_callbacks.ompt_callback(ompt_callback_mutex_acquired)(
-            ompt_mutex_nest_lock, (omp_wait_id_t)lck, codeptr);
+            ompt_mutex_nest_lock, (ompt_wait_id_t)lck, codeptr);
       }
     } else {
       if (ompt_enabled.ompt_callback_nest_lock) {
         // lock_next
         ompt_callbacks.ompt_callback(ompt_callback_nest_lock)(
-            ompt_mutex_scope_begin, (omp_wait_id_t)lck, codeptr);
+            ompt_mutex_scope_begin, (ompt_wait_id_t)lck, codeptr);
       }
     }
   }
@@ -3392,11 +3392,11 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     // JP: as long as there is a barrier in the implementation, OMPT should and
     // will provide the barrier events
     //         so we set-up the necessary frame/return addresses.
-    omp_frame_t *ompt_frame;
+    ompt_frame_t *ompt_frame;
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-      if (ompt_frame->enter_frame == NULL)
-        ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+      if (ompt_frame->enter_frame.ptr == NULL)
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3409,7 +3409,7 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     retval = (retval != 0) ? (0) : (1);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame = NULL;
+      ompt_frame->enter_frame.ptr = NULL;
     }
 #endif
 
@@ -3573,11 +3573,11 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
 // this barrier should be visible to a customer and to the threading profile
 // tool (it's a terminating barrier on constructs if NOWAIT not specified)
 #if OMPT_SUPPORT
-    omp_frame_t *ompt_frame;
+    ompt_frame_t *ompt_frame;
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-      if (ompt_frame->enter_frame == NULL)
-        ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+      if (ompt_frame->enter_frame.ptr == NULL)
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3591,7 +3591,7 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     retval = (retval != 0) ? (0) : (1);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame = NULL;
+      ompt_frame->enter_frame.ptr = NULL;
     }
 #endif
 
@@ -3659,11 +3659,11 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
 
 // TODO: implicit barrier: should be exposed
 #if OMPT_SUPPORT
-    omp_frame_t *ompt_frame;
+    ompt_frame_t *ompt_frame;
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-      if (ompt_frame->enter_frame == NULL)
-        ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+      if (ompt_frame->enter_frame.ptr == NULL)
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3673,7 +3673,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame = NULL;
+      ompt_frame->enter_frame.ptr = NULL;
     }
 #endif
 
@@ -3683,11 +3683,11 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
 
 // TODO: implicit barrier: should be exposed
 #if OMPT_SUPPORT
-    omp_frame_t *ompt_frame;
+    ompt_frame_t *ompt_frame;
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-      if (ompt_frame->enter_frame == NULL)
-        ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+      if (ompt_frame->enter_frame.ptr == NULL)
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3697,18 +3697,18 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame = NULL;
+      ompt_frame->enter_frame.ptr = NULL;
     }
 #endif
 
   } else if (packed_reduction_method == atomic_reduce_block) {
 
 #if OMPT_SUPPORT
-    omp_frame_t *ompt_frame;
+    ompt_frame_t *ompt_frame;
     if (ompt_enabled.enabled) {
       __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-      if (ompt_frame->enter_frame == NULL)
-        ompt_frame->enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+      if (ompt_frame->enter_frame.ptr == NULL)
+        ompt_frame->enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(1);
       OMPT_STORE_RETURN_ADDRESS(global_tid);
     }
 #endif
@@ -3719,7 +3719,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame = NULL;
+      ompt_frame->enter_frame.ptr = NULL;
     }
 #endif
 
