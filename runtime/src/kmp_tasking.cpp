@@ -545,6 +545,8 @@ static void __kmpc_omp_task_begin_if0_template(ident_t *loc_ref, kmp_int32 gtid,
     if (current_task->ompt_task_info.frame.enter_frame.ptr == NULL) {
       current_task->ompt_task_info.frame.enter_frame.ptr =
           taskdata->ompt_task_info.frame.exit_frame.ptr = frame_address;
+      current_task->ompt_task_info.frame.enter_frame_flags =
+          taskdata->ompt_task_info.frame.exit_frame_flags = ompt_frame_application | ompt_frame_framepointer;
     }
     if (ompt_enabled.ompt_callback_task_create) {
       ompt_task_info_t *parent_info = &(current_task->ompt_task_info);
@@ -584,8 +586,6 @@ void __kmpc_omp_task_begin_if0(ident_t *loc_ref, kmp_int32 gtid,
 #if OMPT_SUPPORT
   if (UNLIKELY(ompt_enabled.enabled)) {
     OMPT_STORE_RETURN_ADDRESS(gtid);
-    task->ompt_task_info.frame.exit_frame_flags = ompt_frame_application | ompt_frame_framepointer;
-    task->ompt_task_info.frame.enter_frame_flags = ompt_frame_application | ompt_frame_framepointer;
     __kmpc_omp_task_begin_if0_ompt(loc_ref, gtid, task,
                                    OMPT_GET_FRAME_ADDRESS(1),
                                    OMPT_LOAD_RETURN_ADDRESS(gtid));
@@ -853,6 +853,7 @@ static void __kmpc_omp_task_complete_if0_template(ident_t *loc_ref,
     ompt_frame_t *ompt_frame;
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
     ompt_frame->enter_frame.ptr = NULL;
+    ompt_frame->enter_frame_flags = ompt_frame_runtime | ompt_frame_framepointer;
   }
 #endif
 

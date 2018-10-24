@@ -156,10 +156,18 @@
                                                                                                                          \
     macro (ompt_callback_dispatch,          ompt_callback_dispatch_t,          32) /* dispatch of work                */
 
+/*****************************************************************************
+ * implementation specific types
+ *****************************************************************************/
 
+typedef enum kmp_mutex_impl_t {
+#define kmp_mutex_impl_macro(impl, code) impl = code,
+    FOREACH_KMP_MUTEX_IMPL(kmp_mutex_impl_macro)
+#undef kmp_mutex_impl_macro
+} kmp_mutex_impl_t;
 
 /*****************************************************************************
- * data types
+ * definitions generated from spec
  *****************************************************************************/
 
 typedef enum ompt_callbacks_t {
@@ -1062,15 +1070,14 @@ typedef ompt_record_ompt_t *(*ompt_get_record_ompt_t) (
   ompt_buffer_cursor_t current
 );
 
-/*----------------------
- * mutex implementations
- *----------------------*/
-typedef enum kmp_mutex_impl_t {
-#define kmp_mutex_impl_macro(impl, code) impl = code,
-    FOREACH_KMP_MUTEX_IMPL(kmp_mutex_impl_macro)
-#undef kmp_mutex_impl_macro
-} kmp_mutex_impl_t;
-
+#define ompt_id_none 0
 #define ompt_data_none {0}
+#define ompt_time_none 0
+#define ompt_hwid_none 0
+#define ompt_addr_none ~0
+#define ompt_mutex_impl_none 0
+#define ompt_wait_id_none 0
+
+#define ompd_segment_none 0
 
 #endif /* __OMPT__ */
