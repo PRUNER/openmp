@@ -45,7 +45,7 @@
 
 callback_counter_t *all_counter;
 __thread callback_counter_t *this_event_counter;
-static int runOnTsan = 1;
+static int runOnTsan;
 
 class ArcherFlags {
 public:
@@ -949,9 +949,10 @@ ompt_start_tool_result_t *ompt_start_tool(unsigned int omp_version,
   archer_flags = new ArcherFlags(options);
   static ompt_start_tool_result_t ompt_start_tool_result = {
       &ompt_tsan_initialize, &ompt_tsan_finalize, {0}};
+  runOnTsan=1;
   RunningOnValgrind();
   if (!runOnTsan) // if we are not running on TSAN, give a different tool the
-  // chance to be loaded
+    // chance to be loaded
   {
     if (archer_flags->verbose)
       std::cout << "Archer detected OpenMP application without TSan "
