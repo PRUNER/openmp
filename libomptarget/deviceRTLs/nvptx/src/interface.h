@@ -485,6 +485,7 @@ EXTERN void __kmpc_kernel_end_convergent_simd(void *buffer);
 
 
 EXTERN void __kmpc_data_sharing_init_stack();
+EXTERN void __kmpc_data_sharing_init_stack_spmd();
 EXTERN void *__kmpc_data_sharing_push_stack(size_t size, int16_t UseSharedMemory);
 EXTERN void __kmpc_data_sharing_pop_stack(void *a);
 EXTERN void __kmpc_begin_sharing_variables(void ***GlobalArgs, size_t nArgs);
@@ -516,4 +517,7 @@ EXTERN void __kmpc_data_sharing_environment_end(
 EXTERN void *
 __kmpc_get_data_sharing_environment_frame(int32_t SourceThreadID,
                                           int16_t IsOMPRuntimeInitialized);
+
+// SPMD execution mode interrogation function.
+EXTERN int8_t __kmpc_is_spmd_exec_mode();
 #endif
