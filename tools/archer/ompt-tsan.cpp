@@ -483,7 +483,7 @@ static inline void *ToInAddr(void *OutAddr) {
 }
 
 /// Store a mutex for each wait_id to resolve race condition with callbacks.
-std::unordered_map<ompt_wait_id_t, std::mutex> Locks;
+std::unordered_map<omp_wait_id_t, std::mutex> Locks;
 std::mutex LocksMutex;
 
 static void ompt_tsan_thread_begin(ompt_thread_type_t thread_type,
@@ -512,7 +512,7 @@ static void ompt_tsan_thread_end(ompt_data_t *thread_data) {
 /// OMPT event callbacks for handling parallel regions.
 
 static void ompt_tsan_parallel_begin(ompt_data_t *parent_task_data,
-                                     const ompt_frame_t *parent_task_frame,
+                                     const omp_frame_t *parent_task_frame,
                                      ompt_data_t *parallel_data,
                                      uint32_t requested_team_size,
                                      //  uint32_t actual_team_size,
@@ -651,7 +651,7 @@ static void ompt_tsan_sync_region(ompt_sync_region_kind_t kind,
 
 static void ompt_tsan_task_create(
     ompt_data_t *parent_task_data, /* id of parent task            */
-    const ompt_frame_t *parent_frame, /* frame data for parent task   */
+    const omp_frame_t *parent_frame, /* frame data for parent task   */
     ompt_data_t *new_task_data, /* id of created task           */
     int type, int has_dependences,
     const void *codeptr_ra) /* pointer to outlined function */
@@ -803,7 +803,7 @@ static void ompt_tsan_task_dependences(ompt_data_t *task_data,
 
 /// OMPT event callbacks for handling locking.
 static void ompt_tsan_mutex_acquired(ompt_mutex_kind_t kind,
-                                     ompt_wait_id_t wait_id,
+                                     omp_wait_id_t wait_id,
                                      const void *codeptr_ra) {
   if (archer_flags->print_ompt_counters)
     switch (kind) {
@@ -841,7 +841,7 @@ static void ompt_tsan_mutex_acquired(ompt_mutex_kind_t kind,
 }
 
 static void ompt_tsan_mutex_released(ompt_mutex_kind_t kind,
-                                     ompt_wait_id_t wait_id,
+                                     omp_wait_id_t wait_id,
                                      const void *codeptr_ra) {
   if (archer_flags->print_ompt_counters)
     switch (kind) {
