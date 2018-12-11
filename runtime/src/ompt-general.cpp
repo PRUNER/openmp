@@ -342,9 +342,9 @@ void ompt_post_init() {
   // Initialize the tool if so indicated.
   //--------------------------------------------------
   if (ompt_start_tool_result) {
-    extern int omp_get_initial_device(void);
+//    extern int omp_get_initial_device(void);
     ompt_enabled.enabled = !!ompt_start_tool_result->initialize(
-        ompt_fn_lookup, omp_get_initial_device(), &(ompt_start_tool_result->tool_data));
+        ompt_fn_lookup, /*omp_get_initial_device()*/-10, &(ompt_start_tool_result->tool_data));
 
     if (!ompt_enabled.enabled) {
       // tool not enabled, zero out the bitmap, and done
