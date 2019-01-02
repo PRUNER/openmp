@@ -57,13 +57,15 @@ typedef struct alignas(128) {
   int task_dependences; // (16) task_dependences
   int task_dependence; // (17) task_dependence
   int sync_region_scope_begin_barrier; // (21) sync_region:	scope_begin:
-                                       // sync_region_barrier
-  int sync_region_scope_begin_taskwait; //                                      sync_region_taskwait
-  int sync_region_scope_begin_taskgroup; //                                      sync_region_taskgroup
+                                       //                sync_region_barrier
+  int sync_region_scope_begin_reduction; //              sync_region_reduction
+  int sync_region_scope_begin_taskwait; //               sync_region_taskwait
+  int sync_region_scope_begin_taskgroup; //              sync_region_taskgroup
   int sync_region_scope_end_barrier; //                  	scope_end:
                                      //                  sync_region_barrier
-  int sync_region_scope_end_taskwait; //                                      sync_region_taskwait
-  int sync_region_scope_end_taskgroup; //                                      sync_region_taskgroup
+  int sync_region_scope_end_reduction; //                sync_region_reduction
+  int sync_region_scope_end_taskwait; //                 sync_region_taskwait
+  int sync_region_scope_end_taskgroup; //                sync_region_taskgroup
   int lock_init_lock; // (22) lock_init:	mutex_lock
   int lock_init_nest_lock; // 			mutex_nest_lock
   int lock_init_default; //			default

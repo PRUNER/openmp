@@ -386,7 +386,7 @@ struct TaskData {
   Taskgroup *TaskGroup;
 
   /// Dependency information for this task.
-  ompt_task_dependence_t *Dependencies;
+  ompt_dependence_t *Dependencies;
 
   /// Number of dependency entries.
   unsigned DependencyCount;
@@ -440,10 +440,10 @@ static inline void *ToInAddr(void *OutAddr) {
 }
 
 /// Store a mutex for each wait_id to resolve race condition with callbacks.
-std::unordered_map<omp_wait_id_t, std::mutex> Locks;
+std::unordered_map<ompt_wait_id_t, std::mutex> Locks;
 std::mutex LocksMutex;
 
-static void ompt_tsan_thread_begin(ompt_thread_type_t thread_type,
+static void ompt_tsan_thread_begin(ompt_thread_t thread_type,
                                    ompt_data_t *thread_data) {
   pdp = new DataPool<ParallelData, 4>;
   TsanNewMemory(pdp, sizeof(pdp));
@@ -469,11 +469,10 @@ static void ompt_tsan_thread_end(ompt_data_t *thread_data) {
 /// OMPT event callbacks for handling parallel regions.
 
 static void ompt_tsan_parallel_begin(ompt_data_t *parent_task_data,
-                                     const omp_frame_t *parent_task_frame,
+                                     const ompt_frame_t *parent_task_frame,
                                      ompt_data_t *parallel_data,
                                      uint32_t requested_team_size,
-                                     //  uint32_t actual_team_size,
-                                     ompt_invoker_t invoker,
+                                     int flag,
                                      const void *codeptr_ra) {
   ParallelData *Data = new ParallelData;
   parallel_data->ptr = Data;
@@ -484,7 +483,7 @@ static void ompt_tsan_parallel_begin(ompt_data_t *parent_task_data,
 
 static void ompt_tsan_parallel_end(ompt_data_t *parallel_data,
                                    ompt_data_t *task_data,
-                                   ompt_invoker_t invoker,
+                                   int flag,
                                    const void *codeptr_ra) {
   ParallelData *Data = ToParallelData(parallel_data);
   TsanHappensAfter(Data->GetBarrierPtr(0));
@@ -506,7 +505,8 @@ static void ompt_tsan_implicit_task(ompt_scope_endpoint_t endpoint,
                                     ompt_data_t *parallel_data,
                                     ompt_data_t *task_data,
                                     unsigned int team_size,
-                                    unsigned int thread_num) {
+                                    unsigned int thread_num,
+                                    int type) {
   switch (endpoint) {
   case ompt_scope_begin:
     task_data->ptr = new TaskData(ToParallelData(parallel_data));
@@ -525,7 +525,7 @@ static void ompt_tsan_implicit_task(ompt_scope_endpoint_t endpoint,
   }
 }
 
-static void ompt_tsan_sync_region(ompt_sync_region_kind_t kind,
+static void ompt_tsan_sync_region(ompt_sync_region_t kind,
                                   ompt_scope_endpoint_t endpoint,
                                   ompt_data_t *parallel_data,
                                   ompt_data_t *task_data,
@@ -534,71 +534,97 @@ static void ompt_tsan_sync_region(ompt_sync_region_kind_t kind,
   switch (endpoint) {
   case ompt_scope_begin:
     switch (kind) {
-    case ompt_sync_region_barrier: {
-      char BarrierIndex = Data->BarrierIndex;
-      TsanHappensBefore(Data->Team->GetBarrierPtr(BarrierIndex));
+      case ompt_sync_region_barrier_implementation:
+        break;
+      case ompt_sync_region_barrier_implicit:
+      case ompt_sync_region_barrier_explicit:
+      case ompt_sync_region_barrier: {
+        char BarrierIndex = Data->BarrierIndex;
+        TsanHappensBefore(Data->Team->GetBarrierPtr(BarrierIndex));
 
-      // We ignore writes inside the barrier. These would either occur during
-      // 1. reductions performed by the runtime which are guaranteed to be
-      // race-free.
-      // 2. execution of another task.
-      // For the latter case we will re-enable tracking in task_switch.
-      Data->InBarrier = true;
-      TsanIgnoreWritesBegin();
-      COUNT_EVENT3(sync_region, scope_begin, barrier);
-      break;
-    }
-    case ompt_sync_region_taskwait:
+#if 0
+        // We ignore writes inside the barrier. These would either occur during
+        // 1. reductions performed by the runtime which are guaranteed to be
+        // race-free.
+        // 2. execution of another task.
+        // For the latter case we will re-enable tracking in task_switch.
+        Data->InBarrier = true;
+        TsanIgnoreWritesBegin();
+#endif
+        COUNT_EVENT3(sync_region, scope_begin, barrier);
+        break;
+      }
 
-      COUNT_EVENT3(sync_region, scope_begin, taskwait);
-      break;
-    case ompt_sync_region_taskgroup:
-      Data->TaskGroup = new Taskgroup(Data->TaskGroup);
-      COUNT_EVENT3(sync_region, scope_begin, taskgroup);
-      break;
+      case ompt_sync_region_reduction:
+        TsanIgnoreWritesBegin();
+        COUNT_EVENT3(sync_region, scope_begin, reduction);
+        break;
+
+      case ompt_sync_region_taskwait:
+        COUNT_EVENT3(sync_region, scope_begin, taskwait);
+        break;
+
+      case ompt_sync_region_taskgroup:
+        Data->TaskGroup = new Taskgroup(Data->TaskGroup);
+        COUNT_EVENT3(sync_region, scope_begin, taskgroup);
+        break;
     }
     break;
   case ompt_scope_end:
     switch (kind) {
-    case ompt_sync_region_barrier: {
-      // We want to track writes after the barrier again.
-      Data->InBarrier = false;
-      TsanIgnoreWritesEnd();
+      case ompt_sync_region_barrier_implementation:
+        break;
 
-      char BarrierIndex = Data->BarrierIndex;
-      // Barrier will end after it has been entered by all threads.
-      if (parallel_data)
-        TsanHappensAfter(Data->Team->GetBarrierPtr(BarrierIndex));
+      case ompt_sync_region_barrier_implicit:
+      case ompt_sync_region_barrier_explicit:
+      case ompt_sync_region_barrier: {
+#if 0
+        // We want to track writes after the barrier again.
+        Data->InBarrier = false;
+        TsanIgnoreWritesEnd();
+#endif
 
-      // It is not guaranteed that all threads have exited this barrier before
-      // we enter the next one. So we will use a different address.
-      // We are however guaranteed that this current barrier is finished
-      // by the time we exit the next one. So we can then reuse the first
-      // address.
-      Data->BarrierIndex = (BarrierIndex + 1) % 2;
-      COUNT_EVENT3(sync_region, scope_end, barrier);
-      break;
-    }
-    case ompt_sync_region_taskwait: {
-      COUNT_EVENT3(sync_region, scope_end, taskwait);
-      if (Data->execution > 1)
-        TsanHappensAfter(Data->GetTaskwaitPtr());
-      break;
-    }
-    case ompt_sync_region_taskgroup: {
-      assert(Data->TaskGroup != nullptr &&
-             "Should have at least one taskgroup!");
+        char BarrierIndex = Data->BarrierIndex;
+        // Barrier will end after it has been entered by all threads.
+        if (parallel_data)
+          TsanHappensAfter(Data->Team->GetBarrierPtr(BarrierIndex));
 
-      TsanHappensAfter(Data->TaskGroup->GetPtr());
+        // It is not guaranteed that all threads have exited this barrier before
+        // we enter the next one. So we will use a different address.
+        // We are however guaranteed that this current barrier is finished
+        // by the time we exit the next one. So we can then reuse the first
+        // address.
+        Data->BarrierIndex = (BarrierIndex + 1) % 2;
+        COUNT_EVENT3(sync_region, scope_end, barrier);
+        break;
+      }
 
-      // Delete this allocated taskgroup, all descendent task are finished by
-      // now.
-      Taskgroup *Parent = Data->TaskGroup->Parent;
-      delete Data->TaskGroup;
-      Data->TaskGroup = Parent;
-      COUNT_EVENT3(sync_region, scope_end, taskgroup);
-      break;
-    }
+      case ompt_sync_region_reduction:
+        TsanIgnoreWritesEnd();
+        COUNT_EVENT3(sync_region, scope_begin, reduction);
+        break;
+
+      case ompt_sync_region_taskwait: {
+        COUNT_EVENT3(sync_region, scope_end, taskwait);
+        if (Data->execution > 1)
+          TsanHappensAfter(Data->GetTaskwaitPtr());
+        break;
+      }
+
+      case ompt_sync_region_taskgroup: {
+        assert(Data->TaskGroup != nullptr &&
+               "Should have at least one taskgroup!");
+
+        TsanHappensAfter(Data->TaskGroup->GetPtr());
+
+        // Delete this allocated taskgroup, all descendent task are finished by
+        // now.
+        Taskgroup *Parent = Data->TaskGroup->Parent;
+        delete Data->TaskGroup;
+        Data->TaskGroup = Parent;
+        COUNT_EVENT3(sync_region, scope_end, taskgroup);
+        break;
+      }
     }
     break;
   }
@@ -608,7 +634,7 @@ static void ompt_tsan_sync_region(ompt_sync_region_kind_t kind,
 
 static void ompt_tsan_task_create(
     ompt_data_t *parent_task_data, /* id of parent task            */
-    const omp_frame_t *parent_frame, /* frame data for parent task   */
+    const ompt_frame_t *parent_frame, /* frame data for parent task   */
     ompt_data_t *new_task_data, /* id of created task           */
     int type, int has_dependences,
     const void *codeptr_ra) /* pointer to outlined function */
@@ -673,12 +699,12 @@ static void ompt_tsan_task_schedule(ompt_data_t *first_task_data,
     // 1. Task will begin execution after it has been created.
     TsanHappensAfter(ToTask->GetTaskPtr());
     for (unsigned i = 0; i < ToTask->DependencyCount; i++) {
-      ompt_task_dependence_t *Dependency = &ToTask->Dependencies[i];
+      ompt_dependence_t *Dependency = &ToTask->Dependencies[i];
 
-      TsanHappensAfter(Dependency->variable_addr);
+      TsanHappensAfter(Dependency->variable.ptr);
       // in and inout dependencies are also blocked by prior in dependencies!
-      if (Dependency->dependence_flags & ompt_task_dependence_type_out) {
-        TsanHappensAfter(ToInAddr(Dependency->variable_addr));
+      if (Dependency->dependence_type == ompt_dependence_type_out || Dependency->dependence_type == ompt_dependence_type_inout) {
+        TsanHappensAfter(ToInAddr(Dependency->variable.ptr));
       }
     }
   } else {
@@ -696,11 +722,13 @@ static void ompt_tsan_task_schedule(ompt_data_t *first_task_data,
   // TsanHappensBeforeUC(FromTask->GetTaskPtr());
   TsanHappensBefore(FromTask->GetTaskPtr());
 
+#if 0
   if (FromTask->InBarrier) {
     // We want to ignore writes in the runtime code during barriers,
     // but not when executing tasks with user code!
     TsanIgnoreWritesEnd();
   }
+#endif
 
   if (prior_task_status == ompt_task_complete) { // task finished
 
@@ -718,12 +746,12 @@ static void ompt_tsan_task_schedule(ompt_data_t *first_task_data,
       TsanHappensBefore(FromTask->TaskGroup->GetPtr());
     }
     for (unsigned i = 0; i < FromTask->DependencyCount; i++) {
-      ompt_task_dependence_t *Dependency = &FromTask->Dependencies[i];
+      ompt_dependence_t *Dependency = &FromTask->Dependencies[i];
 
       // in dependencies block following inout and out dependencies!
-      TsanHappensBefore(ToInAddr(Dependency->variable_addr));
-      if (Dependency->dependence_flags & ompt_task_dependence_type_out) {
-        TsanHappensBefore(Dependency->variable_addr);
+      TsanHappensBefore(ToInAddr(Dependency->variable.ptr));
+      if (Dependency->dependence_type == ompt_dependence_type_out || Dependency->dependence_type == ompt_dependence_type_inout) {
+        TsanHappensBefore(Dependency->variable.ptr);
       }
     }
     while (FromTask != nullptr && --FromTask->RefCount == 0) {
@@ -735,22 +763,24 @@ static void ompt_tsan_task_schedule(ompt_data_t *first_task_data,
       FromTask = Parent;
     }
   }
+#if 0
   if (ToTask->InBarrier) {
     // We re-enter runtime code which currently performs a barrier.
     TsanIgnoreWritesBegin();
   }
+#endif
 }
 
-static void ompt_tsan_task_dependences(ompt_data_t *task_data,
-                                       const ompt_task_dependence_t *deps,
-                                       int ndeps) {
+static void ompt_tsan_dependences(ompt_data_t *task_data,
+                                  const ompt_dependence_t *deps,
+                                  int ndeps) {
   COUNT_EVENT1(task_dependences);
   if (ndeps > 0) {
     // Copy the data to use it in task_switch and task_end.
     TaskData *Data = ToTaskData(task_data);
-    Data->Dependencies = new ompt_task_dependence_t[ndeps];
+    Data->Dependencies = new ompt_dependence_t[ndeps];
     std::memcpy(Data->Dependencies, deps,
-                sizeof(ompt_task_dependence_t) * ndeps);
+                sizeof(ompt_dependence_t) * ndeps);
     Data->DependencyCount = ndeps;
 
     // This callback is executed before this task is first started.
@@ -759,8 +789,8 @@ static void ompt_tsan_task_dependences(ompt_data_t *task_data,
 }
 
 /// OMPT event callbacks for handling locking.
-static void ompt_tsan_mutex_acquired(ompt_mutex_kind_t kind,
-                                     omp_wait_id_t wait_id,
+static void ompt_tsan_mutex_acquired(ompt_mutex_t kind,
+                                     ompt_wait_id_t wait_id,
                                      const void *codeptr_ra) {
   if (archer_flags->print_ompt_counters)
     switch (kind) {
@@ -797,8 +827,8 @@ static void ompt_tsan_mutex_acquired(ompt_mutex_kind_t kind,
   }
 }
 
-static void ompt_tsan_mutex_released(ompt_mutex_kind_t kind,
-                                     omp_wait_id_t wait_id,
+static void ompt_tsan_mutex_released(ompt_mutex_t kind,
+                                     ompt_wait_id_t wait_id,
                                      const void *codeptr_ra) {
   if (archer_flags->print_ompt_counters)
     switch (kind) {
@@ -845,6 +875,7 @@ static void ompt_tsan_mutex_released(ompt_mutex_kind_t kind,
 #define SET_CALLBACK(event) SET_CALLBACK_T(event, event)
 
 static int ompt_tsan_initialize(ompt_function_lookup_t lookup,
+                                int device_num,
                                 ompt_data_t *tool_data) {
   const char *options = getenv("ARCHER_OPTIONS");
   archer_flags = new ArcherFlags(options);
@@ -877,7 +908,7 @@ static int ompt_tsan_initialize(ompt_function_lookup_t lookup,
 
   SET_CALLBACK(task_create);
   SET_CALLBACK(task_schedule);
-  SET_CALLBACK(task_dependences);
+  SET_CALLBACK(dependences);
 
   SET_CALLBACK_T(mutex_acquired, mutex);
   SET_CALLBACK_T(mutex_released, mutex);
@@ -900,6 +931,7 @@ static void ompt_tsan_finalize(ompt_data_t *tool_data) {
     delete archer_flags;
 }
 
+extern "C"
 ompt_start_tool_result_t *ompt_start_tool(unsigned int omp_version,
                                           const char *runtime_version) {
   const char *options = getenv("ARCHER_OPTIONS");
