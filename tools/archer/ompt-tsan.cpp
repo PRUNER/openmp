@@ -47,6 +47,7 @@
 callback_counter_t *all_counter;
 __thread callback_counter_t *this_event_counter;
 static int runOnTsan;
+static int hasReductionCallback;
 
 class ArcherFlags {
 public:
@@ -542,23 +543,19 @@ static void ompt_tsan_sync_region(ompt_sync_region_t kind,
         char BarrierIndex = Data->BarrierIndex;
         TsanHappensBefore(Data->Team->GetBarrierPtr(BarrierIndex));
 
-#if 0
-        // We ignore writes inside the barrier. These would either occur during
-        // 1. reductions performed by the runtime which are guaranteed to be
-        // race-free.
-        // 2. execution of another task.
-        // For the latter case we will re-enable tracking in task_switch.
-        Data->InBarrier = true;
-        TsanIgnoreWritesBegin();
-#endif
+	if (hasReductionCallback < ompt_set_always) {
+          // We ignore writes inside the barrier. These would either occur during
+          // 1. reductions performed by the runtime which are guaranteed to be
+          // race-free.
+          // 2. execution of another task.
+          // For the latter case we will re-enable tracking in task_switch.
+          Data->InBarrier = true;
+          TsanIgnoreWritesBegin();
+        }
+
         COUNT_EVENT3(sync_region, scope_begin, barrier);
         break;
       }
-
-      case ompt_sync_region_reduction:
-        TsanIgnoreWritesBegin();
-        COUNT_EVENT3(sync_region, scope_begin, reduction);
-        break;
 
       case ompt_sync_region_taskwait:
         COUNT_EVENT3(sync_region, scope_begin, taskwait);
@@ -567,6 +564,9 @@ static void ompt_tsan_sync_region(ompt_sync_region_t kind,
       case ompt_sync_region_taskgroup:
         Data->TaskGroup = new Taskgroup(Data->TaskGroup);
         COUNT_EVENT3(sync_region, scope_begin, taskgroup);
+        break;
+
+      default:
         break;
     }
     break;
@@ -578,11 +578,11 @@ static void ompt_tsan_sync_region(ompt_sync_region_t kind,
       case ompt_sync_region_barrier_implicit:
       case ompt_sync_region_barrier_explicit:
       case ompt_sync_region_barrier: {
-#if 0
-        // We want to track writes after the barrier again.
-        Data->InBarrier = false;
-        TsanIgnoreWritesEnd();
-#endif
+	if (hasReductionCallback < ompt_set_always) {
+          // We want to track writes after the barrier again.
+          Data->InBarrier = false;
+          TsanIgnoreWritesEnd();
+        }
 
         char BarrierIndex = Data->BarrierIndex;
         // Barrier will end after it has been entered by all threads.
@@ -598,11 +598,6 @@ static void ompt_tsan_sync_region(ompt_sync_region_t kind,
         COUNT_EVENT3(sync_region, scope_end, barrier);
         break;
       }
-
-      case ompt_sync_region_reduction:
-        TsanIgnoreWritesEnd();
-        COUNT_EVENT3(sync_region, scope_begin, reduction);
-        break;
 
       case ompt_sync_region_taskwait: {
         COUNT_EVENT3(sync_region, scope_end, taskwait);
@@ -625,6 +620,39 @@ static void ompt_tsan_sync_region(ompt_sync_region_t kind,
         COUNT_EVENT3(sync_region, scope_end, taskgroup);
         break;
       }
+
+      default:
+        break;
+    }
+    break;
+  }
+}
+
+static void ompt_tsan_reduction(ompt_sync_region_t kind,
+                                ompt_scope_endpoint_t endpoint,
+                                ompt_data_t *parallel_data,
+                                ompt_data_t *task_data,
+                                const void *codeptr_ra) {
+  TaskData *Data = ToTaskData(task_data);
+  switch (endpoint) {
+  case ompt_scope_begin:
+    switch (kind) {
+      case ompt_sync_region_reduction:
+        TsanIgnoreWritesBegin();
+        COUNT_EVENT3(sync_region, scope_begin, reduction);
+        break;
+      default:
+        break;
+    }
+    break;
+  case ompt_scope_end:
+    switch (kind) {
+      case ompt_sync_region_reduction:
+        TsanIgnoreWritesEnd();
+        COUNT_EVENT3(sync_region, scope_begin, reduction);
+        break;
+      default:
+        break;
     }
     break;
   }
@@ -722,13 +750,11 @@ static void ompt_tsan_task_schedule(ompt_data_t *first_task_data,
   // TsanHappensBeforeUC(FromTask->GetTaskPtr());
   TsanHappensBefore(FromTask->GetTaskPtr());
 
-#if 0
-  if (FromTask->InBarrier) {
+  if (hasReductionCallback < ompt_set_always && FromTask->InBarrier) {
     // We want to ignore writes in the runtime code during barriers,
     // but not when executing tasks with user code!
     TsanIgnoreWritesEnd();
   }
-#endif
 
   if (prior_task_status == ompt_task_complete) { // task finished
 
@@ -763,12 +789,10 @@ static void ompt_tsan_task_schedule(ompt_data_t *first_task_data,
       FromTask = Parent;
     }
   }
-#if 0
-  if (ToTask->InBarrier) {
+  if (hasReductionCallback < ompt_set_always && ToTask->InBarrier) {
     // We re-enter runtime code which currently performs a barrier.
     TsanIgnoreWritesBegin();
   }
-#endif
 }
 
 static void ompt_tsan_dependences(ompt_data_t *task_data,
@@ -862,14 +886,21 @@ static void ompt_tsan_mutex_released(ompt_mutex_t kind,
   }
 }
 
-#define SET_CALLBACK_T(event, type)                                            \
-  do {                                                                         \
-    ompt_callback_##type##_t tsan_##event = &ompt_tsan_##event;                \
-    int ret = ompt_set_callback(ompt_callback_##event,                         \
-                                (ompt_callback_t)tsan_##event);                \
-    if (ret != ompt_set_always)                                                \
-      printf("Registered callback '" #event "' is not always invoked (%i)\n",  \
-             ret);                                                             \
+// callback , signature , variable to store result , required support level
+#define SET_OPTIONAL_CALLBACK_T(event, type, result, level)                             \
+  do {                                                                                  \
+    ompt_callback_##type##_t tsan_##event = &ompt_tsan_##event;                         \
+    result = ompt_set_callback(ompt_callback_##event,                                   \
+                                (ompt_callback_t)tsan_##event);                         \
+    if (result < level)                                                                 \
+      printf("Registered callback '" #event "' is not supported at " #level " (%i)\n",  \
+             result);                                                                   \
+  } while (0)
+
+#define SET_CALLBACK_T(event, type)                              \
+  do {                                                           \
+    int res;                                                     \
+    SET_OPTIONAL_CALLBACK_T(event, type, res, ompt_set_always);  \
   } while (0)
 
 #define SET_CALLBACK(event) SET_CALLBACK_T(event, event)
@@ -912,6 +943,7 @@ static int ompt_tsan_initialize(ompt_function_lookup_t lookup,
 
   SET_CALLBACK_T(mutex_acquired, mutex);
   SET_CALLBACK_T(mutex_released, mutex);
+  SET_OPTIONAL_CALLBACK_T(reduction, sync_region, hasReductionCallback, ompt_set_never);
   return 1; // success
 }
 
