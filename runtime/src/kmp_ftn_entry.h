@@ -355,13 +355,41 @@ int FTN_STDCALL FTN_CONTROL_TOOL(int command, int modifier, void *arg) {
   }
   kmp_info_t *this_thr = __kmp_threads[__kmp_entry_gtid()];
   ompt_task_info_t *parent_task_info = OMPT_CUR_TASK_INFO(this_thr);
-  parent_task_info->frame.enter_frame = OMPT_GET_FRAME_ADDRESS(1);
+  parent_task_info->frame.enter_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);
   int ret = __kmp_control_tool(command, modifier, arg);
-  parent_task_info->frame.enter_frame = 0;
+  parent_task_info->frame.enter_frame.ptr = 0;
   return ret;
 #endif
 }
+
+/* OpenMP 5.0 Memory Management support */
+void FTN_STDCALL FTN_SET_DEFAULT_ALLOCATOR(const omp_allocator_t *allocator) {
+#ifndef KMP_STUB
+  __kmpc_set_default_allocator(__kmp_entry_gtid(), allocator);
 #endif
+}
+const omp_allocator_t *FTN_STDCALL FTN_GET_DEFAULT_ALLOCATOR(void) {
+#ifdef KMP_STUB
+  return NULL;
+#else
+  return __kmpc_get_default_allocator(__kmp_entry_gtid());
+#endif
+}
+void *FTN_STDCALL FTN_ALLOC(size_t size, const omp_allocator_t *allocator) {
+#ifdef KMP_STUB
+  return malloc(size);
+#else
+  return __kmpc_alloc(__kmp_entry_gtid(), size, allocator);
+#endif
+}
+void FTN_STDCALL FTN_FREE(void *ptr, const omp_allocator_t *allocator) {
+#ifdef KMP_STUB
+  free(ptr);
+#else
+  __kmpc_free(__kmp_entry_gtid(), ptr, allocator);
+#endif
+}
+#endif /* OMP_50_ENABLED */
 
 int FTN_STDCALL KMP_EXPAND_NAME(FTN_GET_THREAD_NUM)(void) {
 #ifdef KMP_STUB
@@ -369,7 +397,8 @@ int FTN_STDCALL KMP_EXPAND_NAME(FTN_GET_THREAD_NUM)(void) {
 #else
   int gtid;
 
-#if KMP_OS_DARWIN || KMP_OS_FREEBSD || KMP_OS_NETBSD
+#if KMP_OS_DARWIN || KMP_OS_DRAGONFLY || KMP_OS_FREEBSD || KMP_OS_NETBSD ||    \
+        KMP_OS_HURD
   gtid = __kmp_entry_gtid();
 #elif KMP_OS_WINDOWS
   if (!__kmp_init_parallel ||
@@ -1135,7 +1164,7 @@ void *FTN_STDCALL FTN_REALLOC(void *KMP_DEREF ptr, size_t KMP_DEREF size) {
   return kmpc_realloc(KMP_DEREF ptr, KMP_DEREF size);
 }
 
-void FTN_STDCALL FTN_FREE(void *KMP_DEREF ptr) {
+void FTN_STDCALL FTN_KFREE(void *KMP_DEREF ptr) {
   // does nothing if the library is not initialized
   kmpc_free(KMP_DEREF ptr);
 }
