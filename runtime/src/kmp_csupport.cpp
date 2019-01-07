@@ -3347,12 +3347,34 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
       loc, global_tid, num_vars, reduce_size, reduce_data, reduce_func, lck);
   __KMP_SET_REDUCTION_METHOD(global_tid, packed_reduction_method);
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  kmp_info_t *this_thr = __kmp_threads[global_tid];
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+#endif
   if (packed_reduction_method == critical_reduce_block) {
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
     __kmp_enter_critical_section_reduce_block(loc, global_tid, lck);
     retval = 1;
 
   } else if (packed_reduction_method == empty_reduce_block) {
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
     // usage: if team size == 1, no synchronization is required ( Intel
     // platforms only )
@@ -3456,14 +3478,37 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
 
   packed_reduction_method = __KMP_GET_REDUCTION_METHOD(global_tid);
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  kmp_info_t *this_thr = __kmp_threads[global_tid];
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+#endif
+
   if (packed_reduction_method == critical_reduce_block) {
 
     __kmp_end_critical_section_reduce_block(loc, global_tid, lck);
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
   } else if (packed_reduction_method == empty_reduce_block) {
 
     // usage: if team size == 1, no synchronization is required ( on Intel
     // platforms only )
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+
+    if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
   } else if (packed_reduction_method == atomic_reduce_block) {
 
@@ -3476,6 +3521,7 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
                                    tree_reduce_block)) {
 
     // only master gets here
+    // OMPT: tree reduction is annotated in the barrier code
 
   } else {
 
@@ -3491,6 +3537,8 @@ void __kmpc_end_reduce_nowait(ident_t *loc, kmp_int32 global_tid,
 
   return;
 }
+
+
 
 /* 2.a.ii. Reduce Block with a terminating barrier */
 
@@ -3551,13 +3599,34 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
       loc, global_tid, num_vars, reduce_size, reduce_data, reduce_func, lck);
   __KMP_SET_REDUCTION_METHOD(global_tid, packed_reduction_method);
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  kmp_info_t *this_thr = __kmp_threads[global_tid];
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+#endif
+
   if (packed_reduction_method == critical_reduce_block) {
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
     __kmp_enter_critical_section_reduce_block(loc, global_tid, lck);
     retval = 1;
 
   } else if (packed_reduction_method == empty_reduce_block) {
-
+    
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_begin, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
     // usage: if team size == 1, no synchronization is required ( Intel
     // platforms only )
     retval = 1;
@@ -3653,9 +3722,24 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
   // this barrier should be visible to a customer and to the threading profile
   // tool (it's a terminating barrier on constructs if NOWAIT not specified)
 
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  kmp_info_t *this_thr = __kmp_threads[global_tid];
+  ompt_data_t *my_task_data = OMPT_CUR_TASK_DATA(this_thr);
+  ompt_data_t *my_parallel_data = OMPT_CUR_TEAM_DATA(this_thr);
+  void *return_address = OMPT_LOAD_RETURN_ADDRESS(global_tid);
+#endif
+
   if (packed_reduction_method == critical_reduce_block) {
 
     __kmp_end_critical_section_reduce_block(loc, global_tid, lck);
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
 // TODO: implicit barrier: should be exposed
 #if OMPT_SUPPORT
@@ -3678,6 +3762,14 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
 #endif
 
   } else if (packed_reduction_method == empty_reduce_block) {
+
+#if OMPT_SUPPORT && OMPT_OPTIONAL
+  if (ompt_enabled.enabled && ompt_enabled.ompt_callback_reduction) {
+      ompt_callbacks.ompt_callback(ompt_callback_reduction)(
+          ompt_sync_region_reduction, ompt_scope_end, my_parallel_data,
+          my_task_data, return_address);
+    }
+#endif
 
 // usage: if team size==1, no synchronization is required (Intel platforms only)
 

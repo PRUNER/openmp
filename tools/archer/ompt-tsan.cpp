@@ -649,7 +649,7 @@ static void ompt_tsan_reduction(ompt_sync_region_t kind,
     switch (kind) {
       case ompt_sync_region_reduction:
         TsanIgnoreWritesEnd();
-        COUNT_EVENT3(sync_region, scope_begin, reduction);
+        COUNT_EVENT3(sync_region, scope_end, reduction);
         break;
       default:
         break;

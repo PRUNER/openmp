@@ -66,10 +66,11 @@ static uint64_t __ompt_get_get_unique_id_internal();
 #define OMPT_HAVE_PSAPI KMP_HAVE_PSAPI
 #define OMPT_STR_MATCH(haystack, needle) __kmp_str_match(haystack, 0, needle)
 
-inline void *__ompt_load_return_address(int gtid) {
+inline void *__ompt_load_return_address(int gtid, int nullify) {
   kmp_info_t *thr = __kmp_threads[gtid];
   void *return_address = thr->th.ompt_thread_info.return_address;
-  thr->th.ompt_thread_info.return_address = NULL;
+  if(nullify)
+    thr->th.ompt_thread_info.return_address = NULL;
   return return_address;
 }
 
@@ -78,7 +79,9 @@ inline void *__ompt_load_return_address(int gtid) {
       !__kmp_threads[gtid]->th.ompt_thread_info.return_address)                \
   __kmp_threads[gtid]->th.ompt_thread_info.return_address =                    \
       __builtin_return_address(0)
-#define OMPT_LOAD_RETURN_ADDRESS(gtid) __ompt_load_return_address(gtid)
+
+#define OMPT_PEEK_RETURN_ADDRESS(gtid) __ompt_load_return_address(gtid, false)
+#define OMPT_LOAD_RETURN_ADDRESS(gtid) __ompt_load_return_address(gtid, true)
 
 //******************************************************************************
 // inline functions
