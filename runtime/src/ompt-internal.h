@@ -15,7 +15,7 @@
 #define __OMPT_INTERNAL_H__
 
 #include "ompt-event-specific.h"
-#include "ompt.h"
+#include "omp-tools.h"
 
 #define OMPT_VERSION 1
 
