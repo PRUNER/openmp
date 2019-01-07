@@ -8,7 +8,7 @@
 #endif
 #include <inttypes.h>
 #include <omp.h>
-#include <ompt.h>
+#include <omp-tools.h>
 #include "ompt-signal.h"
 
 // Used to detect architecture
