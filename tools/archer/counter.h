@@ -15,10 +15,7 @@
 
 #include <stdio.h>
 #include <inttypes.h>
-#include <omp.h>
-#if !defined(__powerpc64__)
-#include <ompt.h>
-#endif
+#include <omp-tools.h>
 
 // 240 should be enough for xeon-phi
 #define MAX_THREADS 240

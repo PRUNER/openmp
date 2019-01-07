@@ -38,11 +38,7 @@
 #endif
 
 #include <sys/resource.h>
-#define _OPENMP
-#include "omp.h"
-#if !defined(__powerpc64__)
-#include <ompt.h>
-#endif
+#include "omp-tools.h"
 
 callback_counter_t *all_counter;
 __thread callback_counter_t *this_event_counter;
@@ -633,7 +629,6 @@ static void ompt_tsan_reduction(ompt_sync_region_t kind,
                                 ompt_data_t *parallel_data,
                                 ompt_data_t *task_data,
                                 const void *codeptr_ra) {
-  TaskData *Data = ToTaskData(task_data);
   switch (endpoint) {
   case ompt_scope_begin:
     switch (kind) {
