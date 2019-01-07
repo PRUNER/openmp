@@ -231,6 +231,27 @@ ompt_try_start_tool(unsigned int omp_version, const char *runtime_version) {
   const char *sep = ":";
 #endif
 
+#if KMP_OS_UNIX
+  { // Non-standard: load archer tool if application is built with TSan
+#if KMP_OS_UNIX
+    const char *fname = "libarcher.so";
+    void *h = dlopen(fname, RTLD_LAZY);
+    if (h) {
+      start_tool = (ompt_start_tool_t)dlsym(h, "ompt_start_tool");
+#elif 0 && KMP_OS_WINDOWS // Not yet tested. How is the fname of libarcher on Windows?
+    char *fname = "archer.dll";
+    HMODULE h = LoadLibrary(fname);
+    if (h) {
+      start_tool = (ompt_start_tool_t)GetProcAddress(h, "ompt_start_tool");
+#endif
+      if (start_tool)
+        ret = (*start_tool)(omp_version, runtime_version);
+      if (ret)
+        return ret;
+    }
+  }
+#endif
+
 #if KMP_OS_DARWIN
   // Try in the current address space
   ret = ompt_tool_darwin(omp_version, runtime_version);
