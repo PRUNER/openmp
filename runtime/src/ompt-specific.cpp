@@ -4,10 +4,9 @@
 
 //===----------------------------------------------------------------------===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is dual licensed under the MIT and the University of Illinois Open
-// Source Licenses. See LICENSE.txt for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -214,7 +213,7 @@ void __ompt_thread_assign_wait_id(void *variable) {
   ti->th.ompt_thread_info.wait_id = (ompt_wait_id_t)variable;
 }
 
-ompt_state_t __ompt_get_state_internal(ompt_wait_id_t *omp_wait_id) {
+int __ompt_get_state_internal(ompt_wait_id_t *omp_wait_id) {
   kmp_info_t *ti = ompt_get_thread();
 
   if (ti) {
@@ -259,8 +258,8 @@ void __ompt_lw_taskteam_init(ompt_lw_taskteam_t *lwt, kmp_info_t *thr, int gtid,
   lwt->ompt_team_info.parallel_data = *ompt_pid;
   lwt->ompt_team_info.master_return_address = codeptr;
   lwt->ompt_task_info.task_data.value = 0;
-  lwt->ompt_task_info.frame.enter_frame.ptr = NULL;
-  lwt->ompt_task_info.frame.exit_frame.ptr = NULL;
+  lwt->ompt_task_info.frame.enter_frame = ompt_data_none;
+  lwt->ompt_task_info.frame.exit_frame = ompt_data_none;
   lwt->ompt_task_info.scheduling_parent = NULL;
   lwt->ompt_task_info.deps = NULL;
   lwt->ompt_task_info.ndeps = 0;

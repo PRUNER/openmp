@@ -4,10 +4,9 @@
 
 //===----------------------------------------------------------------------===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is dual licensed under the MIT and the University of Illinois Open
-// Source Licenses. See LICENSE.txt for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -485,6 +484,10 @@ void __kmpc_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
 
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
+
   this_thr = __kmp_threads[global_tid];
   serial_team = this_thr->th.th_serial_team;
 
@@ -507,11 +510,11 @@ void __kmpc_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
 #if OMPT_SUPPORT
   if (ompt_enabled.enabled &&
       this_thr->th.ompt_thread_info.state != ompt_state_overhead) {
-    OMPT_CUR_TASK_INFO(this_thr)->frame.exit_frame.ptr = NULL;
+    OMPT_CUR_TASK_INFO(this_thr)->frame.exit_frame = ompt_data_none;
     if (ompt_enabled.ompt_callback_implicit_task) {
       ompt_callbacks.ompt_callback(ompt_callback_implicit_task)(
           ompt_scope_end, NULL, OMPT_CUR_TASK_DATA(this_thr), 1,
-          OMPT_CUR_TASK_INFO(this_thr)->thread_num, 0);
+          OMPT_CUR_TASK_INFO(this_thr)->thread_num, ompt_task_implicit);
     }
 
     // reset clear the task id only after unlinking the task
@@ -696,6 +699,10 @@ void __kmpc_barrier(ident_t *loc, kmp_int32 global_tid) {
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
 
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
+
   if (__kmp_env_consistency_check) {
     if (loc == 0) {
       KMP_WARNING(ConstructIdentInvalid); // ??? What does it mean for the user?
@@ -724,7 +731,7 @@ void __kmpc_barrier(ident_t *loc, kmp_int32 global_tid) {
   __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame.ptr = NULL;
+    ompt_frame->enter_frame = ompt_data_none;
   }
 #endif
 }
@@ -743,6 +750,10 @@ kmp_int32 __kmpc_master(ident_t *loc, kmp_int32 global_tid) {
 
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
+
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
 
   if (KMP_MASTER_GTID(global_tid)) {
     KMP_COUNT_BLOCK(OMP_MASTER);
@@ -833,6 +844,10 @@ void __kmpc_ordered(ident_t *loc, kmp_int32 gtid) {
 
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
+
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
 
 #if USE_ITT_BUILD
   __kmp_itt_ordered_prep(gtid);
@@ -1590,6 +1605,10 @@ kmp_int32 __kmpc_barrier_master(ident_t *loc, kmp_int32 global_tid) {
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
 
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
+
   if (__kmp_env_consistency_check)
     __kmp_check_barrier(global_tid, ct_barrier, loc);
 
@@ -1608,7 +1627,7 @@ kmp_int32 __kmpc_barrier_master(ident_t *loc, kmp_int32 global_tid) {
   status = __kmp_barrier(bs_plain_barrier, global_tid, TRUE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame.ptr = NULL;
+    ompt_frame->enter_frame = ompt_data_none;
   }
 #endif
 
@@ -1648,6 +1667,10 @@ kmp_int32 __kmpc_barrier_master_nowait(ident_t *loc, kmp_int32 global_tid) {
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
 
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
+
   if (__kmp_env_consistency_check) {
     if (loc == 0) {
       KMP_WARNING(ConstructIdentInvalid); // ??? What does it mean for the user?
@@ -1670,7 +1693,7 @@ kmp_int32 __kmpc_barrier_master_nowait(ident_t *loc, kmp_int32 global_tid) {
   __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame.ptr = NULL;
+    ompt_frame->enter_frame = ompt_data_none;
   }
 #endif
 
@@ -1867,6 +1890,59 @@ int ompc_get_team_size(int level) {
   return __kmp_get_team_size(__kmp_entry_gtid(), level);
 }
 
+#if OMP_50_ENABLED
+/* OpenMP 5.0 Affinity Format API */
+
+void ompc_set_affinity_format(char const *format) {
+  if (!__kmp_init_serial) {
+    __kmp_serial_initialize();
+  }
+  __kmp_strncpy_truncate(__kmp_affinity_format, KMP_AFFINITY_FORMAT_SIZE,
+                         format, KMP_STRLEN(format) + 1);
+}
+
+size_t ompc_get_affinity_format(char *buffer, size_t size) {
+  size_t format_size;
+  if (!__kmp_init_serial) {
+    __kmp_serial_initialize();
+  }
+  format_size = KMP_STRLEN(__kmp_affinity_format);
+  if (buffer && size) {
+    __kmp_strncpy_truncate(buffer, size, __kmp_affinity_format,
+                           format_size + 1);
+  }
+  return format_size;
+}
+
+void ompc_display_affinity(char const *format) {
+  int gtid;
+  if (!TCR_4(__kmp_init_middle)) {
+    __kmp_middle_initialize();
+  }
+  gtid = __kmp_get_gtid();
+  __kmp_aux_display_affinity(gtid, format);
+}
+
+size_t ompc_capture_affinity(char *buffer, size_t buf_size,
+                             char const *format) {
+  int gtid;
+  size_t num_required;
+  kmp_str_buf_t capture_buf;
+  if (!TCR_4(__kmp_init_middle)) {
+    __kmp_middle_initialize();
+  }
+  gtid = __kmp_get_gtid();
+  __kmp_str_buf_init(&capture_buf);
+  num_required = __kmp_aux_capture_affinity(gtid, format, &capture_buf);
+  if (buffer && buf_size) {
+    __kmp_strncpy_truncate(buffer, buf_size, capture_buf.str,
+                           capture_buf.used + 1);
+  }
+  __kmp_str_buf_free(&capture_buf);
+  return num_required;
+}
+#endif /* OMP_50_ENABLED */
+
 void kmpc_set_stacksize(int arg) {
   // __kmp_aux_set_stacksize initializes the library if needed
   __kmp_aux_set_stacksize(arg);
@@ -2038,7 +2114,7 @@ void __kmpc_copyprivate(ident_t *loc, kmp_int32 gtid, size_t cpy_size,
   __kmp_barrier(bs_plain_barrier, gtid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
   if (ompt_enabled.enabled) {
-    ompt_frame->enter_frame.ptr = NULL;
+    ompt_frame->enter_frame = ompt_data_none;
   }
 #endif
 }
@@ -3313,6 +3389,10 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
 
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
+
 // check correctness of reduce block nesting
 #if KMP_USE_DYNAMIC_LOCK
   if (__kmp_env_consistency_check)
@@ -3409,7 +3489,7 @@ __kmpc_reduce_nowait(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     retval = (retval != 0) ? (0) : (1);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame.ptr = NULL;
+      ompt_frame->enter_frame = ompt_data_none;
     }
 #endif
 
@@ -3533,6 +3613,10 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
   if (!TCR_4(__kmp_init_parallel))
     __kmp_parallel_initialize();
 
+#if OMP_50_ENABLED
+  __kmp_resume_if_soft_paused();
+#endif
+
 // check correctness of reduce block nesting
 #if KMP_USE_DYNAMIC_LOCK
   if (__kmp_env_consistency_check)
@@ -3591,7 +3675,7 @@ kmp_int32 __kmpc_reduce(ident_t *loc, kmp_int32 global_tid, kmp_int32 num_vars,
     retval = (retval != 0) ? (0) : (1);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame.ptr = NULL;
+      ompt_frame->enter_frame = ompt_data_none;
     }
 #endif
 
@@ -3673,7 +3757,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame.ptr = NULL;
+      ompt_frame->enter_frame = ompt_data_none;
     }
 #endif
 
@@ -3697,7 +3781,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame.ptr = NULL;
+      ompt_frame->enter_frame = ompt_data_none;
     }
 #endif
 
@@ -3719,7 +3803,7 @@ void __kmpc_end_reduce(ident_t *loc, kmp_int32 global_tid,
     __kmp_barrier(bs_plain_barrier, global_tid, FALSE, 0, NULL, NULL);
 #if OMPT_SUPPORT && OMPT_OPTIONAL
     if (ompt_enabled.enabled) {
-      ompt_frame->enter_frame.ptr = NULL;
+      ompt_frame->enter_frame = ompt_data_none;
     }
 #endif
 
@@ -4105,6 +4189,13 @@ int __kmpc_get_target_offload(void) {
     __kmp_serial_initialize();
   }
   return __kmp_target_offload;
+}
+
+int __kmpc_pause_resource(kmp_pause_status_t level) {
+  if (!__kmp_init_serial) {
+    return 1; // Can't pause if runtime is not initialized
+  }
+  return __kmp_pause_resource(level);
 }
 #endif // OMP_50_ENABLED
 
