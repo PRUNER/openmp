@@ -4,10 +4,9 @@
 
 //===----------------------------------------------------------------------===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is dual licensed under the MIT and the University of Illinois Open
-// Source Licenses. See LICENSE.txt for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -566,7 +565,7 @@ kmp_int32 __kmpc_omp_task_with_deps(ident_t *loc_ref, kmp_int32 gtid,
                     gtid, loc_ref, new_taskdata));
 #if OMPT_SUPPORT
       if (ompt_enabled.enabled) {
-        current_task->ompt_task_info.frame.enter_frame.ptr = NULL;
+        current_task->ompt_task_info.frame.enter_frame = ompt_data_none;
       }
 #endif
       return TASK_CURRENT_NOT_QUEUED;
@@ -586,7 +585,7 @@ kmp_int32 __kmpc_omp_task_with_deps(ident_t *loc_ref, kmp_int32 gtid,
   kmp_int32 ret = __kmp_omp_task(gtid, new_task, true);
 #if OMPT_SUPPORT
   if (ompt_enabled.enabled) {
-    current_task->ompt_task_info.frame.enter_frame.ptr = NULL;
+    current_task->ompt_task_info.frame.enter_frame = ompt_data_none;
   }
 #endif
   return ret;

@@ -4,10 +4,9 @@
 
 //===----------------------------------------------------------------------===//
 //
-//                     The LLVM Compiler Infrastructure
-//
-// This file is dual licensed under the MIT and the University of Illinois Open
-// Source Licenses. See LICENSE.txt for details.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
@@ -547,8 +546,8 @@ static void __kmp_task_start(kmp_int32 gtid, kmp_task_t *task,
 static inline void __ompt_task_init(kmp_taskdata_t *task, int tid) {
   // The calls to __ompt_task_init already have the ompt_enabled condition.
   task->ompt_task_info.task_data.value = 0;
-  task->ompt_task_info.frame.exit_frame.ptr = NULL;
-  task->ompt_task_info.frame.enter_frame.ptr = NULL;
+  task->ompt_task_info.frame.exit_frame = ompt_data_none;
+  task->ompt_task_info.frame.enter_frame = ompt_data_none;
   task->ompt_task_info.frame.exit_frame_flags = ompt_frame_runtime | ompt_frame_framepointer;
   task->ompt_task_info.frame.enter_frame_flags = ompt_frame_runtime | ompt_frame_framepointer;
 #if OMP_40_ENABLED
@@ -815,8 +814,10 @@ static void __kmp_task_finish(kmp_int32 gtid, kmp_task_t *task,
                               kmp_taskdata_t *resumed_task) {
   kmp_taskdata_t *taskdata = KMP_TASK_TO_TASKDATA(task);
   kmp_info_t *thread = __kmp_threads[gtid];
+#if OMP_45_ENABLED
   kmp_task_team_t *task_team =
       thread->th.th_task_team; // might be NULL for serial teams...
+#endif // OMP_45_ENABLED
   kmp_int32 children = 0;
 
   KA_TRACE(10, ("__kmp_task_finish(enter): T#%d finishing task %p and resuming "
@@ -970,7 +971,7 @@ static void __kmpc_omp_task_complete_if0_template(ident_t *loc_ref,
   if (ompt) {
     ompt_frame_t *ompt_frame;
     __ompt_get_task_info_internal(0, NULL, NULL, &ompt_frame, NULL, NULL);
-    ompt_frame->enter_frame.ptr = NULL;
+    ompt_frame->enter_frame = ompt_data_none;
     ompt_frame->enter_frame_flags = ompt_frame_runtime | ompt_frame_framepointer;
   }
 #endif
@@ -1593,7 +1594,7 @@ static void __kmp_invoke_task(kmp_int32 gtid, kmp_task_t *task,
     if (UNLIKELY(ompt_enabled.enabled)) {
       thread->th.ompt_thread_info = oldInfo;
       if (taskdata->td_flags.tiedness == TASK_TIED) {
-        taskdata->ompt_task_info.frame.exit_frame.ptr = NULL;
+        taskdata->ompt_task_info.frame.exit_frame = ompt_data_none;
       }
       __kmp_task_finish<true>(gtid, task, current_task);
     } else
@@ -1661,7 +1662,7 @@ kmp_int32 __kmpc_omp_task_parts(ident_t *loc_ref, kmp_int32 gtid,
   ANNOTATE_HAPPENS_BEFORE(new_task);
 #if OMPT_SUPPORT
   if (UNLIKELY(ompt_enabled.enabled)) {
-    parent->ompt_task_info.frame.enter_frame.ptr = NULL;
+    parent->ompt_task_info.frame.enter_frame = ompt_data_none;
   }
 #endif
   return TASK_CURRENT_NOT_QUEUED;
@@ -1748,7 +1749,7 @@ kmp_int32 __kmpc_omp_task(ident_t *loc_ref, kmp_int32 gtid,
       __ompt_task_finish(new_task,
                          new_taskdata->ompt_task_info.scheduling_parent,
                          ompt_task_switch);
-      new_taskdata->ompt_task_info.frame.exit_frame.ptr = NULL;
+      new_taskdata->ompt_task_info.frame.exit_frame = ompt_data_none;
     }
   }
 #endif
@@ -1760,7 +1761,7 @@ kmp_int32 __kmpc_omp_task(ident_t *loc_ref, kmp_int32 gtid,
                 gtid, loc_ref, new_taskdata));
 #if OMPT_SUPPORT
   if (UNLIKELY(ompt_enabled.enabled && parent != NULL)) {
-    parent->ompt_task_info.frame.enter_frame.ptr = NULL;
+    parent->ompt_task_info.frame.enter_frame = ompt_data_none;
   }
 #endif
   return res;
@@ -1815,7 +1816,7 @@ kmp_int32 __kmp_omp_taskloop_task(ident_t *loc_ref, kmp_int32 gtid,
                 gtid, loc_ref, new_taskdata));
 #if OMPT_SUPPORT
   if (UNLIKELY(ompt_enabled.enabled && parent != NULL)) {
-    parent->ompt_task_info.frame.enter_frame.ptr = NULL;
+    parent->ompt_task_info.frame.enter_frame = ompt_data_none;
   }
 #endif
   return res;
@@ -1913,7 +1914,7 @@ static kmp_int32 __kmpc_omp_taskwait_template(ident_t *loc_ref, kmp_int32 gtid,
             ompt_sync_region_taskwait, ompt_scope_end, my_parallel_data,
             my_task_data, return_address);
       }
-      taskdata->ompt_task_info.frame.enter_frame.ptr = NULL;
+      taskdata->ompt_task_info.frame.enter_frame = ompt_data_none;
     }
 #endif // OMPT_SUPPORT && OMPT_OPTIONAL
 
@@ -2837,7 +2838,7 @@ static void __kmp_enable_tasking(kmp_task_team_t *task_team,
   threads_data = (kmp_thread_data_t *)TCR_PTR(task_team->tt.tt_threads_data);
   KMP_DEBUG_ASSERT(threads_data != NULL);
 
-  if ((__kmp_tasking_mode == tskm_task_teams) &&
+  if (__kmp_tasking_mode == tskm_task_teams &&
       (__kmp_dflt_blocktime != KMP_MAX_BLOCKTIME)) {
     // Release any threads sleeping at the barrier, so that they can steal
     // tasks and execute them.  In extra barrier mode, tasks do not sleep
@@ -4130,7 +4131,7 @@ void __kmp_taskloop_recur(ident_t *loc, int gtid, kmp_task_t *task,
 @param lb        Pointer to loop lower bound in task structure
 @param ub        Pointer to loop upper bound in task structure
 @param st        Loop stride
-@param nogroup   Flag, 1 if nogroup clause specified, 0 otherwise
+@param nogroup   Flag, 1 if no taskgroup needs to be added, 0 otherwise
 @param sched     Schedule specified 0/1/2 for none/grainsize/num_tasks
 @param grainsize Schedule value if specified
 @param task_dup  Tasks duplication routine
@@ -4204,6 +4205,7 @@ void __kmpc_taskloop(ident_t *loc, int gtid, kmp_task_t *task, int if_val,
   case 0: // no schedule clause specified, we can choose the default
     // let's try to schedule (team_size*10) tasks
     grainsize = thread->th.th_team_nproc * 10;
+    KMP_FALLTHROUGH();
   case 2: // num_tasks provided
     if (grainsize > tc) {
       num_tasks = tc; // too big num_tasks requested, adjust values
