@@ -320,10 +320,7 @@ install(
 )
 if(${LIBOMP_OMPT_SUPPORT})
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/omp-tools.h DESTINATION ${LIBOMP_HEADERS_INSTALL_PATH})
-<<<<<<< HEAD
-=======
   # install under legacy name ompt.h
->>>>>>> archer_80
   install(FILES ${CMAKE_CURRENT_BINARY_DIR}/omp-tools.h DESTINATION ${LIBOMP_HEADERS_INSTALL_PATH} RENAME ompt.h)
 endif()
 if(${LIBOMP_FORTRAN_MODULES})
