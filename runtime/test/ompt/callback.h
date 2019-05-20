@@ -154,11 +154,12 @@ ompt_label_##id:
          ompt_get_thread_data()->value, ((char *)addr) - 1, ((char *)addr) - 4)
 #elif KMP_ARCH_PPC64
 // On Power the NOP instruction is 4 bytes long. In addition, the compiler
-// inserts an LD instruction which accounts for another 4 bytes. In contrast to
-// X86 this instruction is always there, even for void runtime functions.
+// inserts a second NOP instruction (another 4 bytes). For non-void runtime
+// functions Clang inserts a STW instruction (but only if compiling under
+// -fno-PIC which will be the default with Clang 8.0, another 4 bytes).
 #define print_possible_return_addresses(addr) \
-  printf("%" PRIu64 ": current_address=%p\n", ompt_get_thread_data()->value, \
-         ((char *)addr) - 8)
+  printf("%" PRIu64 ": current_address=%p or %p\n", ompt_get_thread_data()->value, \
+         ((char *)addr) - 8, ((char *)addr) - 12)
 #elif KMP_ARCH_AARCH64
 // On AArch64 the NOP instruction is 4 bytes long, can be followed by inserted
 // store instruction (another 4 bytes long).
@@ -451,10 +452,29 @@ on_ompt_callback_implicit_task(
       if(task_data->ptr)
         printf("%s\n", "0: task_data initially not null");
       task_data->value = ompt_get_unique_id();
-      printf("%" PRIu64 ": ompt_event_implicit_task_begin: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", team_size=%" PRIu32 ", thread_num=%" PRIu32 "\n", ompt_get_thread_data()->value, parallel_data->value, task_data->value, team_size, thread_num);
+
+      //there is no parallel_begin callback for implicit parallel region
+      //thus it is initialized in initial task
+      if(flags & ompt_task_initial)
+      {
+        char buffer[2048];
+
+        format_task_type(flags, buffer);
+        if(parallel_data->ptr)
+          printf("%s\n", "0: parallel_data initially not null");
+        parallel_data->value = ompt_get_unique_id();
+        printf("%" PRIu64 ": ompt_event_initial_task_begin: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", actual_parallelism=%" PRIu32 ", index=%" PRIu32 ", flags=%" PRIu32 "\n", ompt_get_thread_data()->value, parallel_data->value, task_data->value, team_size, thread_num, flags);
+      } else {
+        printf("%" PRIu64 ": ompt_event_implicit_task_begin: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", team_size=%" PRIu32 ", thread_num=%" PRIu32 "\n", ompt_get_thread_data()->value, parallel_data->value, task_data->value, team_size, thread_num);
+      }
+
       break;
     case ompt_scope_end:
-      printf("%" PRIu64 ": ompt_event_implicit_task_end: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", team_size=%" PRIu32 ", thread_num=%" PRIu32 "\n", ompt_get_thread_data()->value, (parallel_data)?parallel_data->value:0, task_data->value, team_size, thread_num);
+      if(flags & ompt_task_initial){
+        printf("%" PRIu64 ": ompt_event_initial_task_end: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", team_size=%" PRIu32 ", thread_num=%" PRIu32 "\n", ompt_get_thread_data()->value, (parallel_data)?parallel_data->value:0, task_data->value, team_size, thread_num);
+      } else {
+        printf("%" PRIu64 ": ompt_event_implicit_task_end: parallel_id=%" PRIu64 ", task_id=%" PRIu64 ", team_size=%" PRIu32 ", thread_num=%" PRIu32 "\n", ompt_get_thread_data()->value, (parallel_data)?parallel_data->value:0, task_data->value, team_size, thread_num);
+      }
       break;
   }
 }
@@ -626,17 +646,6 @@ on_ompt_callback_task_create(
   char buffer[2048];
 
   format_task_type(type, buffer);
-
-  //there is no parallel_begin callback for implicit parallel region
-  //thus it is initialized in initial task
-  if(type & ompt_task_initial)
-  {
-    ompt_data_t *parallel_data;
-    ompt_get_parallel_info(0, &parallel_data, NULL);
-    if(parallel_data->ptr)
-      printf("%s\n", "0: parallel_data initially not null");
-    parallel_data->value = ompt_get_unique_id();
-  }
 
   printf("%" PRIu64 ": ompt_event_task_create: parent_task_id=%" PRIu64 ", parent_task_frame.exit=%p, parent_task_frame.reenter=%p, new_task_id=%" PRIu64 ", codeptr_ra=%p, task_type=%s=%d, has_dependences=%s\n", ompt_get_thread_data()->value, encountering_task_data ? encountering_task_data->value : 0, encountering_task_frame ? encountering_task_frame->exit_frame.ptr : NULL, encountering_task_frame ? encountering_task_frame->enter_frame.ptr : NULL, new_task_data->value, codeptr_ra, buffer, type, has_dependences ? "yes" : "no");
 }
