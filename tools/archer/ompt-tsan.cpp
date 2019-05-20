@@ -53,13 +53,14 @@ public:
   int print_ompt_counters;
   int print_max_rss;
   int verbose;
+  int enabled;
 
   ArcherFlags(const char *env)
       :
 #if (LLVM_VERSION) >= 40
         flush_shadow(0),
 #endif
-        print_ompt_counters(0), print_max_rss(0), verbose(0) {
+        print_ompt_counters(0), print_max_rss(0), verbose(0), enabled(1) {
     if (env) {
       std::vector<std::string> tokens;
       std::string token;
@@ -79,6 +80,8 @@ public:
         if (sscanf(it->c_str(), "print_max_rss=%d", &print_max_rss))
           continue;
         if (sscanf(it->c_str(), "verbose=%d", &verbose))
+          continue;
+        if (sscanf(it->c_str(), "enable=%d", &enabled))
           continue;
         std::cerr << "Illegal values for ARCHER_OPTIONS variable: " << token
                   << std::endl;
@@ -963,6 +966,15 @@ ompt_start_tool_result_t *ompt_start_tool(unsigned int omp_version,
                                           const char *runtime_version) {
   const char *options = getenv("ARCHER_OPTIONS");
   archer_flags = new ArcherFlags(options);
+  if (!archer_flags->enabled)
+  {
+    if (archer_flags->verbose)
+      std::cout << "Archer disabled, stopping operation"
+                << std::endl;
+    delete archer_flags;
+    return NULL;
+  }
+  
   static ompt_start_tool_result_t ompt_start_tool_result = {
       &ompt_tsan_initialize, &ompt_tsan_finalize, {0}};
   runOnTsan=1;
