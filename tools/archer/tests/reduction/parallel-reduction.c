@@ -4,10 +4,10 @@
 
 //===----------------------------------------------------------------------===//
 //
-//                     The LLVM Compiler Infrastructure
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
 //
-// This file is licensed under the LLNS/LLNL "BSD-Like" license.
 // See tools/archer/LICENSE.txt for details.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
 //===----------------------------------------------------------------------===//
 
