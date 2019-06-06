@@ -508,6 +508,11 @@ static void ompt_tsan_implicit_task(ompt_scope_endpoint_t endpoint,
                                     int type) {
   switch (endpoint) {
   case ompt_scope_begin:
+    if(type & ompt_task_initial){
+      ParallelData *Data = new ParallelData;
+      parallel_data->ptr = Data;
+      TsanHappensBefore(Data->GetParallelPtr());
+    }
     task_data->ptr = new TaskData(ToParallelData(parallel_data));
     TsanHappensAfter(ToParallelData(parallel_data)->GetParallelPtr());
     COUNT_EVENT2(implicit_task, scope_begin);
