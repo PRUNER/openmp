@@ -88,6 +88,8 @@ ompt_callbacks_internal_t ompt_callbacks;
 
 static ompt_start_tool_result_t *ompt_start_tool_result = NULL;
 
+static ompt_start_tool_result_t *libomptarget_ompt_result = NULL;
+
 /*****************************************************************************
  * forward declarations
  ****************************************************************************/
@@ -396,6 +398,9 @@ void ompt_post_init() {
 
 void ompt_fini() {
   if (ompt_enabled.enabled) {
+    if (libomptarget_ompt_result) {
+      libomptarget_ompt_result->finalize(NULL);
+    }
     ompt_start_tool_result->finalize(&(ompt_start_tool_result->tool_data));
   }
 
@@ -753,5 +758,49 @@ static ompt_interface_fn_t ompt_fn_lookup(const char *s) {
 
   FOREACH_OMPT_INQUIRY_FN(ompt_interface_fn)
 
+#undef ompt_interface_fn
+
   return (ompt_interface_fn_t)0;
+}
+
+static int ompt_set_frame_enter(void *addr, int flags, int state) {
+ return __ompt_set_frame_enter_internal(addr, flags, state);
+}
+
+static ompt_data_t * ompt_get_task_data() {
+  ompt_data_t *data;
+  if (ompt_get_task_info(0, NULL, &data, NULL, NULL, NULL)) {
+    return data;
+  }
+  return NULL;
+}
+
+static ompt_interface_fn_t libomp_target_fn_lookup(const char *s) {
+  if (strcmp(s, "ompt_set_frame_enter") == 0) 
+    return (ompt_interface_fn_t) ompt_set_frame_enter;
+
+  if (strcmp(s, "ompt_get_task_data") == 0) 
+    return (ompt_interface_fn_t) ompt_get_task_data;
+
+#define ompt_interface_fn(fn) \
+  if (strcmp(s, #fn) == 0) \
+  return (ompt_interface_fn_t) ompt_callbacks.ompt_callback(fn);
+
+  FOREACH_OMPT_TARGET_CALLBACK(ompt_interface_fn)
+
+#undef ompt_interface_fn
+
+  return (ompt_interface_fn_t) 0;
+}
+
+_OMP_EXTERN void libomp_libomptarget_ompt_init(ompt_start_tool_result_t *result) {
+  __ompt_force_initialization();
+
+  if (ompt_enabled.enabled && 
+      ompt_callbacks.ompt_callback(ompt_callback_device_initialize)) {
+    if (result) {
+      result->initialize(libomp_target_fn_lookup, 0, NULL); 
+      libomptarget_ompt_result = result;
+    }
+  }
 }
