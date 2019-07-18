@@ -1,3 +1,15 @@
+/*
+ * json-output.h -- Archer runtime library, json header file
+ */
+
+  //===----------------------------------------------------------------------===//
+  //
+  // Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+  // See tools/archer/LICENSE.txt for details.
+  // SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
+  //
+  //===----------------------------------------------------------------------===//
+ 
 #include "tsan_interface.h"
 #include "tsan_report.h"
 
