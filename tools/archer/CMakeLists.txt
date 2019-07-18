@@ -14,11 +14,17 @@
 
 include_directories(${LIBOMP_INCLUDE_DIR})
 
-add_library(archer SHARED ompt-tsan.cpp counter.cpp ftsan.c)
-add_library(archer_static STATIC ompt-tsan.cpp counter.cpp ftsan.c)
+include_directories(${CMAKE_HOME_DIRECTORY}/projects/compiler-rt/include/)
+include_directories(${CMAKE_HOME_DIRECTORY}/projects/compiler-rt/lib/tsan/rtl/)
+include_directories(${CMAKE_HOME_DIRECTORY}/projects/compiler-rt/lib/)
 
-install(TARGETS archer archer_static
+add_library(archer_json_static STATIC json-output.cpp) 
+add_library(archer_static STATIC ompt-tsan.cpp counter.cpp ftsan.c)
+add_library(archer SHARED ompt-tsan.cpp counter.cpp ftsan.c)
+
+install(TARGETS archer archer_static archer_json_static
   LIBRARY DESTINATION lib
   ARCHIVE DESTINATION lib)
 
+add_subdirectory(tools)
 add_subdirectory(tests)
