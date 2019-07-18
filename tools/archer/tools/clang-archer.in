@@ -49,28 +49,31 @@
 #
 
 linking=yes
-
+clang_args=""
 CLANG_ARCHER_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-for arg in "$@" ; do
-    case "$arg" in
+while [ -n "$1" ] ; do
+    case "$1" in
         --json)
           extra_lflags="-Wl,--whole-archive @CMAKE_INSTALL_PREFIX@/lib/libarcher_json_static.a -Wl,--no-whole-archive -lstdc++"
-          shift
           ;;
-        --help)i
+        --help)
             echo "Archer Options"
             echo
             echo "  --json    Output race reports as Json instead of in a human-readable format"
             echo
-            shift
             ${CLANG_ARCHER_DIR}/clang --help
             exit
             ;;
         -c|-S|-E|-M|-MM|MMD)
             linking=no
+            clang_args="$clang_args $1"
+            ;;
+        *)
+            clang_args="$clang_args $1"
             ;;
     esac
+    shift
 done
 
 if [ $linking == yes ] ; then
@@ -80,4 +83,4 @@ else
 fi
 
 
-@CMAKE_INSTALL_PREFIX@/bin/clang -fopenmp -fsanitize=thread -g "$@" $link_flags
+@CMAKE_INSTALL_PREFIX@/bin/clang -fopenmp -fsanitize=thread -g $clang_args $link_flags
